@@ -50,8 +50,8 @@ var VoronoiDemo = {
 	margin: 100,
 	canvas: null,
   // Good values for title screen:
-	bbox: {xl:0,xr:1150,yt:0,yb:862},		
-	//bbox: {xl:0,xr:850,yt:0,yb:550},		
+	//bbox: {xl:0,xr:1150,yt:0,yb:862},		
+	bbox: {xl:0,xr:850,yt:0,yb:550},		
   diagLength: 0,
   centerY: 300,
   //centerY: this.bbox.yb/2,
@@ -526,6 +526,34 @@ var VoronoiDemo = {
     return colString;
   }, 
 
+  drawHalfPlanes: function(sites, halfPlaneSites, displaySite) {
+		var ctx = this.canvas.getContext('2d');
+	  ctx.beginPath();
+		ctx.strokeStyle = '#aaa';
+    var nSites = sites.length;
+    var vd = sites[displaySite];
+    for (var i=0; i<nSites; i++) {
+      if (halfPlaneSites.indexOf(i) < 0 && i != displaySite) {
+        // Draw halfplane between site i and displaySite
+        var vi = sites[i];
+        var xc = 0.5*(vi.x + vd.x);
+        var yc = 0.5*(vi.y + vd.y);
+        var dx = vi.x - vd.x;
+        var dy = vi.y - vd.y;
+        // Normal: perpendicular
+        var dxT = dx;
+        dx = -dy;
+        dy = dxT;
+        var l = Math.sqrt(dx*dx + dy*dy);
+        var mult = this.diagLength / l;
+        var dashLength = 10;
+        ctx.dashedLine(xc, yc, xc + mult*dx, yc + mult*dy, dashLength);
+        ctx.dashedLine(xc, yc, xc - mult*dx, yc - mult*dy, dashLength);
+      }
+    }
+    ctx.stroke();
+  },
+
 	render: function() {
 		var ctx = this.canvas.getContext('2d');
 		// background
@@ -607,7 +635,7 @@ var VoronoiDemo = {
         if (this.displayMode == -2) {
           ctx.fillStyle = this.makeColorLighter(this.colors[iCell],sites[iCell]);
         }
-        if (this.displayMode == 0 || this.displayMode == -2 || (iCell == displaySite && this.displayMode == 3)) {
+        if (this.displayMode == 0 || this.displayMode == -2 || (iCell == displaySite && (this.displayMode == 3 || this.displayMode == 100))) {
 			    ctx.fill();
         }
 		  }
@@ -621,7 +649,7 @@ var VoronoiDemo = {
 		  var nx = this.bbox.xr * 1.0 / this.gridSpacing;
 		  var ny = this.bbox.yb * 1.0 / this.gridSpacing;
 		  var dashLength = 10;
-		  for (var i=0; i<nx; i++) {
+		  for (var i=0; i<nx-1; i++) {
 		    var xline = (i+1)*this.gridSpacing;
 		    ctx.dashedLine(xline, 0, xline, this.bbox.yb, dashLength);
 		    // Non-dashed version:
@@ -631,7 +659,7 @@ var VoronoiDemo = {
       if (this.limitingTo1D) {
         ctx.dashedLine(0, this.centerY, this.bbox.xr, this.centerY, dashLength);
       } else {
-        for (var i=0; i<ny; i++) {
+        for (var i=0; i<ny-1; i++) {
           var yline = (i+1)*this.gridSpacing;
           ctx.dashedLine(0, yline, this.bbox.xr, yline, dashLength);
         }
@@ -651,6 +679,7 @@ var VoronoiDemo = {
     if (this.displayMode == -2) {
 		  ctx.strokeStyle='#777';
     }
+
     var halfPlaneSites = [];
     var nHalfPlanes = 0;
     var maxDistanceFromSite = 0;
@@ -746,6 +775,10 @@ var VoronoiDemo = {
             ctx.stroke();
       }
     }
+    if (this.displayMode == 100) {
+      // Draw half-planes even for sites not neighboring displaySite
+      this.drawHalfPlanes(sites, halfPlaneSites, displaySite);
+    }
 			
 		ctx.strokeStyle='#000';
 		// draw sites
@@ -761,7 +794,7 @@ var VoronoiDemo = {
           if (halfPlaneSites.indexOf(nSites) > -1) {
           ctx.fillStyle = this.colors[nSites];
           } else ctx.fillStyle = '#000';
-          if (this.displayMode >= 4 && nSites == displaySite)
+          if (this.displayMode >= 4 && nSites == displaySite && this.displayMode != 100)
             ctx.fillStyle = this.colors[nSites];
         }
 			  ctx.moveTo(site.x,site.y);
@@ -769,7 +802,7 @@ var VoronoiDemo = {
 			  //ctx.rect(site.x-2/3,site.y-2/3,2,2);
 		    if (this.displayMode >= 3) {
           ctx.fill();
-          if (this.displayMode >= 4 && nSites == displaySite) {
+          if (this.displayMode >= 4 && nSites == displaySite && this.displayMode != 100) {
             //ctx.moveTo(site.x,site.y);
 		        ctx.beginPath();
             ctx.arc(site.x, site.y, siteRadius+4, 0, 2 * Math.PI, false);
@@ -879,6 +912,7 @@ if (srcElem) {
   <option value="6">2 half-planes</option>
   <option value="7">3 half-planes</option>
   <option value="8">4 half-planes</option>
+  <option value="100">All half-planes</option>
   <option value="-1">Facility location</option>
   <option value="-2">Color gradient</option>
   </select>
