@@ -2,8 +2,8 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-<title>Javascript implementation of Steven Fortune's algorithm to compute Voronoi diagrams: Demo 2</title>
-<meta name="Keywords" lang="en" content="voronoi, fortune, javascript, raymond hill"/>
+<title>Voronoi diagram area game</title>
+<meta name="Keywords" lang="en" content="voronoi, game, javascript"/>
 <div id="divroot" style="width:610px;">
 <!--[if lte IE 8]><script type="text/javascript" src="excanvas/excanvas.compiled.js"></script><![endif]-->
 <script type="text/javascript" src="rhill-voronoi-core.min.js"></script>
@@ -45,7 +45,10 @@ var VoronoiDemo = {
 	margin: 100,
 	canvas: null,
 	bbox: {xl:0,xr:600,yt:0,yb:600},		
-  centerY: 300,
+	//bbox: {xl:0,xr:600,yt:0,yb:100},		
+	//bbox: {xl:0,xr:134,yt:0,yb:134},		
+  //centerY: 300,
+  centerY: 50,
   //centerY: this.bbox.yb/2,
 	redArea: 0,
 	blueArea: 0,
@@ -57,9 +60,10 @@ var VoronoiDemo = {
 	redTurn: true,
 	nTurns: -1,
 	mouseNotMoving: 0,
-	gridSpacing: 100,
+	gridSpacing: 50,
 	limitingSitePlacement: false,
   limitingTo1D: false,
+  rectangularCanvas: false, 
 	hidingSites: false,
   playAgainstComputer: false, 
   blueColor: '#25f',
@@ -178,10 +182,10 @@ var VoronoiDemo = {
 			
 		this.canvas.onclick = function(e) {
 		  me.mouseNotMoving = 1;
-		  //var turnOffset = 0;
+		  var turnOffset = -1;
 	    var iStart = 1;
 		  if (me.playingAreaGame) {
-		    //turnOffset = 1;
+		    turnOffset = 0;
 		    iStart = 0;
 		  }
 			var mouse = me.normalizeEventCoords(me.canvas,e);
@@ -208,7 +212,7 @@ var VoronoiDemo = {
 			    me.addSite(xmouse,ymouse);
           //if ((me.sites.length-1+turnOffset) % 2 == 0) {
           var blueTurn = true;
-          if ((me.sites.length) % 2 == 0) {
+          if ((me.sites.length + turnOffset) % 2 == 0) {
             me.currentTurn += 1;
             me.bluePoints += 1;
             blueTurn = false;
@@ -239,7 +243,7 @@ var VoronoiDemo = {
 		this.diagram = this.voronoi.compute(this.sites, this.bbox);
     this.updateStats();
     this.playingAreaGame = false;
-    this.redTurn = false;
+    this.redTurn = true;
     this.redPoints = 0;
     this.bluePoints = 0;
 		},
@@ -256,7 +260,7 @@ var VoronoiDemo = {
       this.sites = [];
       this.redPoints = 0;
       this.bluePoints = 0;
-      this.redTurn = false;
+      this.redTurn = true;
       this.playingAreaGame = false;
       nPrevious = 0;
       n += 1; // final site isn't placed, just temporary point from mouse hover
@@ -420,6 +424,20 @@ var VoronoiDemo = {
     this.render();
 		},
 
+  setRectangularCanvas: function(val) {
+    this.rectangularCanvas = val;
+    if (this.rectangularCanvas) {
+      this.bbox.yb = 100;
+    }
+    else {
+      this.bbox.yb = 600;
+    }
+    this.totalArea = this.bbox.xr * this.bbox.yb / 1000;
+    this.centerY = this.bbox.yb/2,
+    this.canvas.height = this.bbox.yb;
+    this.render();
+  },
+
 	render: function() {
 		var ctx = this.canvas.getContext('2d');
 		// background
@@ -463,24 +481,31 @@ var VoronoiDemo = {
 				  //console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
 				  
 			  // After clicking the last site in game mode, a new site is created which is a duplicate of the one just placed, which shouldn't count for the area calculation
-			  var duplicate = false;
-			  if (!this.playingAreaGame && sites[0].x == sites[nSites-1].x && sites[0].y == sites[nSites-1].y && nSites > 1) duplicate = true;
+        var alreadyAdded = false;
+			  if (!this.playingAreaGame) {
+          for (var k=1; k<this.sites.length; k++)
+            if (this.sites[k].x == this.sites[0].x && this.sites[k].y == this.sites[0].y) alreadyAdded = true;
+       // && sites[0].x == sites[nSites-1].x && sites[0].y == sites[nSites-1].y && nSites > 1) duplicate = true;
+        }
 			  
-			  if (nSites == 1 || (nSites == 2 && this.mouseNotMoving && !this.playingAreaGame)) polygonArea = this.bbox["xr"] * this.bbox["yb"];
+			  //if (nSites == 1 || (nSites == 2 && this.mouseNotMoving && !this.playingAreaGame)) polygonArea = this.bbox["xr"] * this.bbox["yb"];
+			  if (nSites == 1 || (nSites == 2 && alreadyAdded)) polygonArea = this.bbox["xr"] * this.bbox["yb"];
 			  //if (nSites == 1) polygonArea = this.bbox["xr"] * this.bbox["yb"];
 			  
 			  if (iCell == 0 && !this.playingAreaGame) {
-			    if (!duplicate) {
+			    if (!alreadyAdded) {
 			      if (nSites % 2) {
+    				  ctx.fillStyle = '#faa';
+			        this.redArea += polygonArea/1000.0;
+			      }	else {
     				  ctx.fillStyle = '#aaf';
 			        this.blueArea += polygonArea/1000.0;
-			      }	else {
-    				  ctx.fillStyle = '#faa';    	
-			        this.redArea += polygonArea/1000.0;
 			      }
 			    }
-			  } else {				  	  
-			    if (iCell % 2) {
+			  } else {
+          var iTurn = iCell;
+          if (!this.playingAreaGame) iTurn += 1;
+			    if (iTurn % 2) {
 			      //ctx.fillStyle = '#00f';
 			      ctx.fillStyle = this.blueColor;
 			      this.blueArea += polygonArea/1000.0;
@@ -493,17 +518,22 @@ var VoronoiDemo = {
 		  }
 	  }
 			
+    ctx.lineWidth = 1;
+		ctx.strokeStyle = '#aaa';
+    if (this.rectangularCanvas) {
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 2;
+    }
 		if (this.limitingSitePlacement) {
 		  // draw grid
-		  ctx.strokeStyle = '#aaa';
-      ctx.lineWidth = 1;
 	    ctx.beginPath();
 		  var nx = this.bbox.xr * 1.0 / this.gridSpacing;
 		  var ny = this.bbox.yb * 1.0 / this.gridSpacing;
 		  var dashLength = 10;
 		  for (var i=0; i<nx; i++) {
 		    var xline = (i+1)*this.gridSpacing;
-		    ctx.dashedLine(xline, 0, xline, this.bbox.yb, dashLength);
+        if (!this.rectangularCanvas || !(i%2)) 
+		      ctx.dashedLine(xline, 0, xline, this.bbox.yb, dashLength);
 		    // Non-dashed version:
 			  //ctx.moveTo(xline,0);	
 				//ctx.lineTo(xline,this.bbox.yb);
@@ -518,8 +548,6 @@ var VoronoiDemo = {
       }
 			ctx.stroke();
     } else if (this.limitingTo1D) {
-      ctx.strokeStyle = '#aaa';
-      ctx.lineWidth = 1;
 	    ctx.beginPath();
 		  var dashLength = 10;
       ctx.dashedLine(0, this.centerY, this.bbox.xr, this.centerY, dashLength);
@@ -650,9 +678,10 @@ Take turns placing points in the plane to maximize the area of your cells in the
 <h4 class="divhdr">Options</h4>
 <div class="divinfo" id="voronoiGenerator3">
 <input id="hideSites" type="checkbox" value="hidingSites" onclick="VoronoiDemo.hideSites(document.getElementById('hideSites').checked)"/>Hide sites.
-<input id="limitToGrid" type="checkbox" value="grid" onclick="VoronoiDemo.limitToGrid(document.getElementById('limitToGrid').checked, parseInt(document.getElementById('voronoiGridSpacing').value))"/>Limit sites to a grid with a spacing of <input id="voronoiGridSpacing" type="text" value="50" size="3" maxlength="3"/> pixels between points
+<input id="limitToGrid" type="checkbox" value="grid" onclick="VoronoiDemo.limitToGrid(document.getElementById('limitToGrid').checked, parseInt(document.getElementById('voronoiGridSpacing').value))"/>Limit sites to a grid with a spacing of <input id="voronoiGridSpacing" type="text" value="75" size="3" maxlength="3"/> pixels between points
 <br/>
 <input id="limitTo1D" type="checkbox" value="" onclick="VoronoiDemo.limitTo1D(document.getElementById('limitTo1D').checked)"/>Limit sites to one dimension
+<input id="rectangularCanvas" type="checkbox" value="" onclick="VoronoiDemo.setRectangularCanvas(document.getElementById('rectangularCanvas').checked)"/>Rectangular canvas
 <input id="playAgainstComputer" type="checkbox" value="" onclick="VoronoiDemo.playAgainstComputer = document.getElementById('playAgainstComputer').checked"/>Play against computer
 </div>
 <p>
