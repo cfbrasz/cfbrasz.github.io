@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<title>Artwork</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
+.w3-navbar,h1,button {font-family: "Montserrat", sans-serif}
+.fa-anchor,.fa-coffee {font-size:200px}
+darkblue {
+  background-color: #204e87;
+}
+img {margin-bottom: -7px}
+.w3-row-padding img {margin-bottom: 12px}
+</style>
+<body>
+
+<!-- Navbar -->
+<div class="w3-top">
+  <ul class="w3-navbar w3-black w3-card-2 w3-left-align w3-large" style="background-color:#204e87">
+    <li class="w3-hide-medium w3-hide-large w3-opennav w3-right">
+      <a class="w3-padding-large w3-hover-white w3-large w3-red" href="javascript:void(0);" onclick="myFunction()" title="Toggle Navigation Menu"><i class="fa fa-bars"></i></a>
+    </li>
+    <li><a href="index.html" class="w3-padding-large w3-white">Frederik Brasz</a></li>
+    <li class="w3-hide-small"><a href="#" class="w3-padding-large w3-hover-white">About</a></li>
+    <li class="w3-hide-small"><a href="#" class="w3-padding-large w3-hover-white">Research</a></li>
+    <li class="w3-hide-small"><a href="programs.html" class="w3-padding-large w3-hover-white">Programming projects</a></li>
+    <li class="w3-hide-small"><a href="#" class="w3-padding-large w3-hover-white">Artwork</a></li>
+  </ul>
+
+  <!-- Navbar on small screens -->
+  <div id="navDemo" class="w3-hide w3-hide-large w3-hide-medium">
+    <ul class="w3-navbar w3-left-align w3-large w3-black">
+      <li><a class="w3-padding-large" href="#">About</a></li>
+      <li><a class="w3-padding-large" href="#">Research</a></li>
+      <li><a class="w3-padding-large" href="programs.html">Programming projects</a></li>
+      <li><a class="w3-padding-large" href="#">Artwork</a></li>
+    </ul>
+  </div>
+</div>
+
+<!-- !PAGE CONTENT! -->
+<div class="w3-row-padding w3-padding-64 w3-container">
+  <div class="w3-content">
+    <h1>Swedish landscape paintings</h1>
+    <h5 class="w3-padding-32">I did all of these paintings based off of photographs of the Swedish summer camp (<a href="https://brevik.framtidenjustnu.se/">Brevik</a>) I went to and worked at for many years. 
+They're shown here in approximately the order I painted them in. The first half (11) were done in high school, another 6 were done in classes at Williams, and 4 others were done in free time in college or after (2 as wedding gifts). The black and white landscapes are prints from a printmaking class, and there's also an oil pastel landscape from high school. The rest were done using oil paints.</h5>
+    <p>Click an image to see a high-resolution photo
+    <!--
+    <p class="w3-padding-16"><button class="w3-btn" onclick="toggleGridPadding()">Toggle Grid Padding</button></p>
+-->
+  </div>
+</div>
+
+    <!-- <div class="w3-content" style="max-width:1500px"> -->
+
+<!-- Photo Grid -->
+<div class="w3-row-padding" id="myGrid">
+  <div class="w3-third">
+    <a href="1.jpg"><img src="1s.jpg" style="width:100%"/> </a>
+    <a href="4.jpg"><img src="4s.jpg" style="width:100%"/> </a>
+    <a href="7.jpg"><img src="7s.jpg" style="width:100%"/> </a>
+    <a href="SwedenIsland.jpg"><img src="SwedenIslands.jpg" style="width:100%"/> </a>
+    <a href="10.jpg"><img src="10s.jpg" style="width:100%"/> </a>
+    <a href="brevikPan.jpg"><img src="brevikPans.jpg" style="width:100%"/> </a>
+    <a href="11a.jpg"><img src="11as.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="SwedishSummer.jpg"><img src="2s.jpg" style="width:100%"/> </a>
+    <a href="5.jpg"><img src="5s.jpg" style="width:100%"/> </a>
+    <a href="8.jpg"><img src="8s.jpg" style="width:100%"/> </a>
+    <a href="11.jpg"><img src="11s.jpg" style="width:100%"/> </a>
+    <a href="SunsetPrint.jpg"><img src="SunsetPrints.jpg" style="width:100%"/> </a>
+    <a href="PensiveSunset.jpg"><img src="PensiveSunsets.jpg" style="width:100%"/> </a>
+    <a href="NilsJess.jpg"><img src="NilsJesss.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="3.jpg"><img src="3s.jpg" style="width:100%"/> </a>
+    <a href="6.jpg"><img src="6s.jpg" style="width:100%"/> </a>
+    <a href="9.jpg"><img src="9s.jpg" style="width:100%"/> </a>
+    <a href="PastelLandscape.jpg"><img src="PastelLandscapes.jpg" style="width:100%"/> </a>
+    <a href="CampMountainView.jpg"><img src="CampMountainViews.jpg" style="width:100%"/> </a>
+    <a href="SunsetPrint2.jpg"><img src="SunsetPrint2s.jpg" style="width:100%"/> </a>
+    <a href="LifeVests.jpg"><img src="LifeVestss.jpg" style="width:100%"/> </a>
+  </div>
+</div>
+
+<div class="w3-row-padding w3-padding-64 w3-container">
+  <div class="w3-content">
+    <h1>Other landscape paintings</h1>
+    <h5 class="w3-padding-32">These range from 7th grade (the pointillist) to high school and college. For the painting class I took in college, one assignment was to do 40 paintings in one week, which are all shown in one photo here. (And about half of these are from Sweden, actually. The other half are locations around Williams.)</h5>
+  </div>
+</div>
+
+<!-- Photo Grid -->
+<div class="w3-row-padding" id="myGrid">
+  <div class="w3-third">
+    <a href="PointillistGreenLakes.jpg"><img src="PointillistGreenLakess.jpg" style="width:100%"/> </a>
+    <a href="12.jpg"><img src="12s.jpg" style="width:100%"/> </a>
+    <a href="16.jpg"><img src="16s.jpg" style="width:100%"/> </a>
+    <a href="WaterfallPrint.jpg"><img src="WaterfallPrints.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="13.jpg"><img src="13s.jpg" style="width:100%"/> </a>
+    <a href="15.jpg"><img src="15s.jpg" style="width:100%"/> </a>
+    <a href="GreekLandscape.jpg"><img src="GreekLandscapes.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="14.jpg"><img src="14s.jpg" style="width:100%"/> </a>
+    <a href="FMFrisbee.jpg"><img src="FMFrisbees.jpg" style="width:100%"/> </a>
+    <a href="170.jpg"><img src="170s.jpg" style="width:100%"/> </a>
+    <a href="PoseidonLandscape.jpg"><img src="PoseidonLandscapes.jpg" style="width:100%"/> </a>
+  </div>
+</div>
+
+<div class="w3-row-padding w3-padding-64 w3-container">
+  <div class="w3-content">
+    <h1>Portraits</h1>
+  </div>
+</div>
+
+<!-- Photo Grid -->
+<div class="w3-row-padding" id="myGrid">
+  <div class="w3-third">
+    <a href="18.jpg"><img src="18s.jpg" style="width:100%"/> </a>
+    <a href="19.jpg"><img src="19s.jpg" style="width:100%"/> </a>
+    <a href="22.jpg"><img src="22s.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="20.jpg"><img src="20s.jpg" style="width:100%"/> </a>
+    <a href="johan.jpg"><img src="johans.jpg" style="width:100%"/> </a>
+  </div>
+
+  <div class="w3-third">
+    <a href="21.jpg"><img src="21s.jpg" style="width:100%"/> </a>
+    <a href="Marin.jpg"><img src="Marins.jpg" style="width:100%"/> </a>
+  </div>
+</div>
+
+<!-- End Page Content -->
+</div>
+
+
+<!-- Footer -->
+<footer class="w3-container w3-padding-64 w3-center w3-opacity">  
+  <div class="w3-xlarge w3-padding-32">
+   <a href="https://www.facebook.com/frederik.brasz" class="w3-hover-text-indigo"><i class="fa fa-facebook-official"></i></a>
+   <a href="https://www.linkedin.com/in/frederikbrasz" class="w3-hover-text-indigo"><i class="fa fa-linkedin"></i></a>
+ </div>
+ <p>Powered by <a href="http://www.w3schools.com/w3css/default.asp" target="_blank">w3.css</a></p>
+</footer>
+
+<script>
+// Used to toggle the menu on small screens when clicking on the menu button
+function myFunction() {
+    var x = document.getElementById("navDemo");
+    if (x.className.indexOf("w3-show") == -1) {
+        x.className += " w3-show";
+    } else { 
+        x.className = x.className.replace(" w3-show", "");
+    }
+}
+
+// Toggle grid padding
+function toggleGridPadding() {
+    var x = document.getElementById("myGrid");
+    if (x.className === "w3-row") {
+        x.className = "w3-row-padding";
+    } else { 
+        x.className = x.className.replace("w3-row-padding", "w3-row");
+    }
+}
+</script>
+
+</body>
+</html>
