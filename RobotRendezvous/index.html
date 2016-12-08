@@ -1,0 +1,79 @@
+<html>
+<title>Robot Rendezvous</title>
+<body>
+	<applet code=RobotRendezvousApplet.class ARCHIVE="org.jar" width="850" height="760">
+    Your browser does not support the applet tag.
+    </applet> 
+<br>
+Instructions:<br>
+Click (and drag) on the screen to place robots (red dots).<br>
+Click the Start rendezvous button to watch them converge to a single point. <br>
+To see a quick example of what it does, choose a preset scenario and click start.<br>
+More details in the description and features sections.
+<p>
+		<H2>Key:	</H2>
+		<p>		
+		<TABLE Border=2 CELLPADDING=3>
+		<TR> <TH>Red circles: </TH>  <TD> 	Robots </TD>  </TR>
+		<TR> <TH>Cyan circles: </TH>  <TD> 	Dummy robots (only for MM curvature and when Merge close robots is selected, see below) </TD>  </TR>
+		<TR> <TH>Bright Green square: </TH>  <TD>	Center of mass of robots at start </TD>  </TR>
+		<TR> <TH>Dark Green square: </TH>  <TD>	Current center of mass of robots </TD>  </TR>
+		<TR> <TH>Blue square: </TH>  <TD>	Center of mass of polygon (giving uniform density to edges) </TD>  </TR>
+		<TR> <TH>Big Grey circle: </TH>  <TD>	Circumcircle of all robots (only for circumcenter scheme) </TD>  </TR>
+		<TR> <TH>Grey dot: </TH>  <TD>	Circumcircle center (only for circumcenter scheme)  </TD>  </TR> </TD>  </TR>
+		<TR> <TH>Grey paths: </TH>  <TD>	History of polygon over time  </TD>  </TR> </TD>  </TR>
+		<TR> <TH>Graph in bottom: </TH>  <TD>	Area of the polygon over time  </TD>  </TR>
+		</TABLE>		
+		<p>		
+<p>
+
+
+Description: <br>
+This applet simulates the robot rendezvous problem using three different schemes:<br>
+1. A circumcenter algorithm, in which all robots simple move to the center of the smallest circumcircle<br>
+containing all robots. (Least interesting to watch/simulate.)<br>
+2. A curve-shortening scheme analogous to Euclidean curve-shortening but for discrete points, using the <br>
+Menger-Melnikov curvature to evolve the polygon.
+3. A linear curve-shortening scheme in which a robot moves toward the average position of its two neighbors.
+<p>
+Features:<br>
+3 integrator types for the linear and Menger-Melnikov curvature schemes: forward Euler, implicit, and Runge-Kutta (4th order).<br>
+The center of mass of the polygon is kept track of over time (one in terms of point masses, the other in terms of edges), as the Key describes.<br>
+The area of the polygon is recorded each run in the window at the bottom. Try the preset scenario Area increase<br>
+to see an example of a polygon of robots in which the area increases initially.<br>
+Two other interesting preset scenarios are included, Spiral and Snake.
+<p>
+Random formations of robots can be generated using the Generate n random robots button.<br>
+Availabe formations include:<br>
+1. A star formation, in which the angle of the ray from the center of mass
+to the robot increases with each subsequent robot in the polygon.<br>
+2. A convex polygon.<br>
+3. Completely random nonsimple polygon.<br>
+You can also convert a given formation to a star ordering with the Convert to star ordering button.<br>
+<p>
+Checkboxes are available for recording the shape of the polygon every so often with a grey outline,<br>
+tracing the paths of each individual robot, and merging robots that get very close to each other in the MM curvature scheme.<br>
+(If you don't merge robots, this scheme starts to behave badly when robots get too close.)<br>
+Merged robots turn cyan, and their paths turn pink.<br>
+<p>
+The mouse click action can be changed according to the radio buttons, and when dragging to create robots<br>
+a slider changes how frequently robots are placed.<br>
+The timestep size and number of steps run each time the screen is updated can also be changed with sliders,<br>
+and their current values are also displayed.<br>
+A timer keeps track of how much time passes in each run.<p>
+
+The four buttons at the top control the action of the simulation. Resetting goes back to how the formation was at time zero,<br>
+and removing all robots lets you start blank again.
+<p>
+This applet was made for a final project for the class Advanced Dynamics, MAE 542, at Princeton University.<br>
+The paper on which most of these methods are described can be found at <a href="http://arxiv.org/abs/cs.RO/0605070">http://arxiv.org/abs/cs.RO/0605070</a>.<br>
+<p>
+If you have any questions or comments, you can reach me at cfbrasz at gmail dot com
+<br>
+Last updated: 1/19/2010
+
+
+</body>
+
+
+</html>

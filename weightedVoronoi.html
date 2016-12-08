@@ -1,0 +1,1509 @@
+<html>
+  <head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+
+<title>Weighted Voronoi diagram</title>
+
+<body>
+  <canvas id="myCanvas"></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+    //var radius = 20;
+    
+    function fmin(a, b) {
+      if (a < b) return a;
+      else return b;
+    }
+    
+    function fmax(a, b) {
+      if (a > b) return a;
+      else return b;
+    }
+    
+    function fabs(x) {
+      if (x > 0) return x;
+      else return -x;
+    }
+    
+    function set() {
+      // Initializes empty set
+      this.elements = [];
+
+      this.contains = function(e) {
+        return this.elements.indexOf(e) > -1;
+      }
+
+      this.add = function(e) {
+        if(!this.contains(e))
+          this.elements.push(e);
+      }
+
+      this.addMultiple = function(arr) {
+        for(var i=0; i<arr.length; i++) this.add(arr[i]);
+      }
+
+      this.remove = function(e) {
+        var i = this.elements.indexOf(e);
+        if (i > -1) {
+          this.elements.splice(i,1);
+        }
+      }
+
+      this.size = function() {
+        return this.elements.length;
+      }
+
+      this.print = function() {
+        var printStr = "";
+        for(var i=0; i<this.elements.length; i++) {
+          printStr += this.elements[i];
+          if (i < this.elements.length-1) printStr += ", ";
+        }
+        console.log(printStr);
+      }
+    }
+    
+    function point(x0, y0, weight) {
+      this.x = x0;
+      this.y = y0;
+      this.weight = weight;
+      this.radius1 = 2+10*weight;
+      this.radius = scale*weight;
+      this.fillStyle = 'red'      
+      
+      this.draw = function(context) {
+        context.beginPath();
+        context.arc(scale*this.x, scale*this.y, this.radius, 0, 2 * Math.PI, false);
+        context.fillStyle = this.fillStyle;
+        context.strokeStyle = this.fillStyle;
+        context.lineWidth = 1;
+        context.stroke();
+
+        context.beginPath();
+        context.arc(scale*this.x, scale*this.y, this.radius1, 0, 2 * Math.PI, false);
+        context.fill();   
+      }
+      
+      this.equals = function(p2) {
+        return fabs(this.x - p2.x) < 1.0e-6 && fabs(this.y - p2.y) < 1.0e-6;
+      }
+      
+      this.distSq = function(p2) {
+        var dx = p2.x - this.x;
+        var dy = p2.y - this.y;
+        return dx*dx + dy*dy;
+      }
+      
+      this.dist = function(p2) {
+        return Math.sqrt(this.distSq(p2));
+      }
+      
+      this.contained = function(x0, y0, w, h) {
+        result = true;
+	      if (this.x < x0 || this.y < y0) result = false;
+	      if (this.x > x0 + w || this.y > y0 + h) result = false;
+	      return result;
+      }
+
+      this.rotateAbout = function(p, theta) {
+        // Return new point obtained by rotating current point around point p by angle theta (in CCW direction)
+        var dx = this.x - p.x;
+        var dy = this.y - p.y;
+        var xn =  dx*Math.cos(theta) - dy*Math.sin(theta);
+        var yn =  dx*Math.sin(theta) + dy*Math.cos(theta);
+        return new point( p.x + xn, p.y + yn, 0 );
+      }
+      
+      this.angle = function(p) {
+        // Note this defines angles in the normal sense visually (because y increases downward)
+        // currently not
+        return Math.atan2(-(p.y - this.y), p.x - this.x);
+      }
+    }
+    
+    function midpoint(p1, p2) {
+      return new point( (p1.x + p2.x)/2, (p1.y + p2.y)/2, 0);
+    }
+    
+    function slope(p1, p2) {
+      // Slope of line from p1 to p2
+      x = p2.x - p1.x;
+      y = p2.y - p1.y;
+	    if (x != 0) return 1.0*y/x;
+	    else return y*1.0e6;
+	  }
+    
+    function intersection(p1, p2, q1, q2) {
+	    // Returns intersection point of line passing through p1 and p2 with line passing through q1 and q2
+      var mp = slope(p1,p2);
+      var mq = slope(q1,q2);
+      var xI = (mp*p1.x - mq*q1.x + q1.y - p1.y)/(mp-mq);
+      var yI = mp*(xI - p1.x) + p1.y
+      
+      if(p1.x == p2.x) {
+        xI = p1.x;
+        yI = mq*(xI - q1.x) + q1.y;
+      } else if(q1.x == q2.x) {
+        xI = q1.x;
+        yI = mp*(xI - p1.x) + p1.y;
+      } else if(p1.y == p2.y) {
+        yI = p1.y;
+        xI = (yI - q1.y)/mq + q1.x;
+      } else if(q1.y == q2.y) {
+        yI = q1.y;
+        xI = (yI - p1.y)/mp + p1.x
+      }
+      
+      return new point(xI, yI);
+    }
+    
+    function intersectSegment(p1, p2, q1, q2) {
+      // Returns true if segment from p1 to p2 intersects segment from q1 to q2
+      var pI = intersection(p1, p2, q1, q2);
+      
+      var lowX = fmin(p1.x, p2.x);
+      var highX = fmax(p1.x, p2.x);
+      var lowY = fmin(p1.y, p2.y);
+      var highY = fmax(p1.y, p2.y);
+      
+      var lowX2 = fmin(q1.x, q2.x);
+      var highX2 = fmax(q1.x, q2.x);
+      var lowY2 = fmin(q1.y, q2.y);
+      var highY2 = fmax(q1.y, q2.y);
+      
+	    return (pI.contained(lowX,lowY,highX-lowX,highY-lowY) ) && 
+		   (pI.contained(lowX2,lowY2,highX2-lowX2,highY2-lowY2) );      
+    }
+    
+    function intersectsExistingDiagonals(ip, jp, points, diagonal) {
+      // Returns true if segment from p1 to p2 intersects any of the specified diagonals between points
+      var result = false;
+      p1 = points[ip];
+	    p2 = points[jp];
+		  var np = points.length;
+		  for(var i=0; i<np-1; i++) {
+		    for(var j=i+1; j<np; j++) {
+		      ni = diagonal[i];
+		      if (ni.indexOf(j) > -1 && !(i == ip || j == jp || i == jp || j == ip)) {
+			      var pI = intersection(p1, p2, points[i], points[j]);
+			      if (intersectSegment(p1,p2, points[i], points[j])) { // && !pI.equals(p1) && !pI.equals(p2)) {
+				    //console.log("pI = " + pI.x + ", " + pI.y);
+				      result = true;
+			      }
+			    }
+		    }
+		  }
+		  return result;
+    }
+    
+    function addPointToTriangulation(p, points, triangulation) {
+      // Add point p and corresponding new diagonals to triangulation 
+      //points.push(p); // Move this out of function, so points already
+      //contains p
+      triangulation.push([]);
+
+      // Sort points by weight (descending)
+      points.sort(function(a, b) {
+        return -(a.weight - b.weight);
+      });
+      
+	    var np = points.length;
+	    // TODO: find best 2D array option
+	    for(var i=0; i<np-1; i++) { // added p = points[np-1] already
+	      var intersects = intersectsExistingDiagonals(i,np-1,points,triangulation);
+        if (!intersects) {
+          triangulation[i].push(np-1);
+          triangulation[np-1].push(i);
+        }
+	    }
+      //console.log("triangulation[np-1] = " + triangulation[np-1]);
+    }
+    
+    function flipDiagonals(points, triangulation) {
+      // Make triangulation Delaunay by iterating through quadrilaterals and flipping diagonals when the flipped diagonal is shorter than the original
+            
+	    var np = points.length;
+      var flipped = true;
+      
+      while(flipped) {
+        flipped = false;
+        
+        for(var i=0; i<np; i++) { // as long as diagonals are ordered and one-sided, shouldn't need to check i=np-1 or i=np-2 or i=np-3
+          if(flipped) continue;
+          var pi = points[i];
+          var ti = triangulation[i];
+          //console.log(ti);
+          for(var m=0; m<ti.length; m++) {
+            if(flipped) continue;
+            var j = ti[m];
+            var pj = points[j];
+            var tj = triangulation[j];
+            for(var n=0; n<ti.length; n++) {
+              if(flipped) continue;
+              if(m != n) {
+                var k = ti[n];
+                var kIndextj = tj.indexOf(k);
+                if(kIndextj > -1) {
+                  // Then ijk is a triangle in diagram
+                  // Find quadrilaterals with ijk by finding l such that jkl is a triangle
+                  var pk = points[k];
+                  var tk = triangulation[k];
+                  for(var o=0; o<tj.length; o++) {
+                    if(flipped) continue;
+                    var l = tj[o];
+                    if(l != i && l != j && tk.indexOf(l) > -1) {
+                      // Then jkl is a triangle in the diagram
+                      var pl = points[l];
+                      // Check that il is not already an edge
+                      if(ti.indexOf(l) < 0) {
+                        // temporarily remove edge jk from diagram
+                        tj.splice(kIndextj,1);
+                        jIndextk = tk.indexOf(j);                      
+                        tk.splice(jIndextk,1);
+                        if(pi.distSq(pl) < pj.distSq(pk) && !intersectsExistingDiagonals(i,l,points,triangulation)) {
+                          //console.log("flip " + j + "," + k + " to " + i + "," + l);  
+                          ti.push(l);
+                          var tl = triangulation[l];
+                          tl.push(i);
+                          //console.log(ti);
+                          flipped = true;
+                          continue;
+                        } else {
+                          tj.push(k);
+                          tk.push(j);
+                          kIndextj = tj.indexOf(k);
+                          //console.log("tri[0] = " + triangulation[0]);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }        
+        }
+      }
+    }
+
+    function solveQuartic(a, b, c, d, e) {
+      // Solve quartic equation, a x^4 + b x^3 + c x^2 + d x + e = 0
+      var debugC = 0;
+      if (a != 0) {
+        var EightASq = 8*a*a;
+        var p = (8*a*c - 3*b*b)/EightASq;
+        var q = (Math.pow(b,3) - 4*a*b*c + EightASq*d) / (EightASq*a);
+        
+        var delta0 = c*c - 3*b*d + 12*a*e;
+        var delta1 = 2*Math.pow(c,3) - 9*b*c*d + 27*(b*b*e + a*d*d) - 72*a*c*e;
+        var delta = delta1*delta1 - 4*Math.pow(delta0,3);
+        
+        if (debugC) {
+          console.log("delta = " + delta);
+          console.log("delta0 = " + delta0);
+          console.log("delta1 = " + delta1);
+        }
+        var SDisc;
+        var Qreal = 1;
+        if (delta < 0) Qreal = 0;
+        else {
+          var QDisc = delta1 + Math.sqrt(delta);
+          if (QDisc < 0) Qreal = 0;
+        }
+          //if (delta >= 1e-8) {
+        if (Qreal) {
+          // Q is real
+          var Q = Math.pow(0.5*(delta1 + Math.sqrt(delta)), 1/3);
+          SDisc = -(2/3)*p + (1/(3*a))*(Q + delta0/Q);
+          if (debugC) {
+            console.log("Q = " + Q);
+            console.log("SDisc = " + SDisc);
+          }
+          
+        } else {
+          // Q is complex, and either all roots are real or all roots are non-real
+          if (delta0 > 0) {
+            var phiArg = delta1 / (2*Math.pow(delta0,3/2));
+            if (debugC) console.log("phiArg = " + phiArg);
+            if (Math.abs(phiArg) <= 1) {
+              var phi = Math.acos(phiArg);
+              SDisc = -(2/3)*p + (2/(3*a))*Math.sqrt(delta0)*Math.cos(phi/3);
+              if (debugC) {
+                console.log("phi = " + phi);
+                console.log("SDisc = " + SDisc);
+              }
+            }
+          }
+        }
+        
+        var solns = [];
+        if (SDisc >= 0) {
+          var S = 0.5 * Math.sqrt(SDisc);
+          var lastDisc1 = -4*S*S - 2*p + q/S;
+          var lastDisc2 = -4*S*S - 2*p - q/S;
+          if (debugC) {
+            console.log("S = " + S);
+            console.log("lastDisc1 = " + lastDisc1);
+            console.log("lastDisc2 = " + lastDisc2);
+          }
+          var b4a = b/(4*a);
+          if (lastDisc1 >= 0) {
+            var lastTerm = 0.5*Math.sqrt(lastDisc1);
+            if (debugC) console.log("lastTerm1 = " + lastTerm);
+            var x1 = -b4a - S + lastTerm;
+            var x2 = -b4a - S - lastTerm;
+            solns.push(x1);
+            solns.push(x2);
+          }
+          if (lastDisc2 >= 0) {
+            var lastTerm = 0.5*Math.sqrt(lastDisc2);
+            if (debugC) console.log("lastTerm2 = " + lastTerm);
+            x3 = -b4a + S + lastTerm;
+            x4 = -b4a + S - lastTerm;
+            solns.push(x3);
+            solns.push(x4);          
+          }
+        } else if (SDisc == 0) {
+          console.log("S = 0, choose another cube root of Q");
+        }
+        
+        // Check answer:
+        for (var i = 0; i < solns.length; i++) {
+          var xc = solns[i];
+          var check = a*Math.pow(xc,4) + b*Math.pow(xc,3) + c*Math.pow(xc,2) + d*xc + e;
+          if (Math.abs(check) > eps) {
+            if (debugC) console.log("Error: quartic equation for x" + i + " = " + xc + " gives " + check + " instead of 0");
+          } else {
+            if (debugC) console.log("x" + i + " = " + xc);
+          }
+        }
+        return solns;
+      }
+    }
+
+    function solveCubic(a, b, c, d) {
+      // Solve cubic equation, a x^3 + b x^2 + c x + d = 0
+      var disc = 18*a*b*c*d - 4*Math.pow(b,3)*d + b*b*c*c - 4*a*Math.pow(c,3) - 27*a*a*d*d;
+      console.log("disc = " + disc);
+
+      solns = [];
+
+      return solns;
+    }
+
+    function solveQuadratic(a, b, c) {
+      var solns = [];
+      var disc = b*b - 4*a*c;
+      console.log("quadratic disc = " + disc);
+      if (disc >= 0) {
+        x1 = (-b + Math.sqrt(disc))/(2*a);
+        solns.push(x1);
+        if (disc > 0) {
+          x2 = (-b - Math.sqrt(disc))/(2*a);
+          solns.push(x2);
+        }
+      }
+      return solns;
+    }
+
+    // Checked with live.sympy.org
+    // dx = symbols('delta_x') 
+    // dy = symbols('delta_y') 
+    // a, b, c, s = symbols('alpha beta c s')
+    // expr = (c*(x-dx) + s*(y-dy))**2/a**2 - (-s*(x-dx) + c*(y-dy))**2/b**2
+    // collect(expand(expr), [x, y])
+    // Found a sign error in a11! Now it works
+    
+    function findHyperbolaIntersection(p1, p2, p3) {
+      // Find unique point at intersection of hyperbolas formed between weighted points p1, p2, and p3
+      // To start, assume p1 and p2 have the same y value (rotate coordinates later)
+      var debugC = 0;
+      var debugD = 0;
+      
+      var intersections = [];
+      
+      var w12 = p1.weight - p2.weight;
+      var w13 = p1.weight - p3.weight;
+      var w23 = p2.weight - p3.weight;
+      if (debugC) {
+        console.log("w12, w13, w23 = %s, %s, %s", w12.toFixed(3), w13.toFixed(3), w23.toFixed(3))
+      }
+      var d12 = p1.dist(p2);
+      var d13 = p1.dist(p3);
+      var d23 = p2.dist(p3);
+      if (Math.abs(w12) < d12 && Math.abs(w13) < d13 && Math.abs(w23) < d23) {
+        var a = w12/2;
+        var bSq = (d12*d12 - w12*w12)/4;
+        var b = Math.sqrt(bSq);
+        var alpha = w13/2;
+        var betaSq = (d13*d13 - w13*w13)/4;
+        var beta = Math.sqrt(betaSq); 
+
+        var p12 = midpoint(p1,p2);
+        var p13 = midpoint(p1,p3);
+        var theta13 = Math.atan2(p3.y - p1.y, p3.x - p1.x);
+        var theta12 = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        if (debugC) console.log("theta13, theta12 = " + theta13 + ", " + theta12);
+        var theta = theta13 - theta12;
+        var p12r = p12.rotateAbout(p1, -theta12);
+        var p13r = p13.rotateAbout(p1, -theta12);
+        //p12r.draw(context);
+        //p13r.draw(context);
+        var dx = p13r.x - p12r.x;
+        var dy = p13r.y - p12r.y;
+        var c = Math.cos(theta);
+        var s = Math.sin(theta);
+        
+        // 0 = a0 + a1*x + a2*x^2 + b1*y + b2*y^2 + a11*x*y
+        var alphaSq = alpha*alpha;
+        var csab1 = c*c/alphaSq - s*s/betaSq;
+        var csab2 = s*s/alphaSq - c*c/betaSq;
+        var ab3 = 1/alphaSq + 1/betaSq;
+        var a0 = csab1*dx*dx + csab2*dy*dy + 2*c*s*ab3*dx*dy;
+        var a1 = -2*(csab1*dx + c*s*ab3*dy);
+        var b1 = -2*(csab2*dy + c*s*ab3*dx);
+        // first hyperbola only comes into play in a2 and b2
+        var a2 = csab1 - 1/(a*a);
+        var b2 = csab2 + 1/(b*b);
+        var a11 = 2*c*s*(1/alphaSq + 1/betaSq);
+        
+        // Plug x = +-a sqrt(1 + y^2/b^2) into eqn above to get quartic for y
+        var c0 = a0 + a2*a*a;
+        var c2 = a2*a*a/(b*b) + b2;
+        var aSq = a*a;
+        var e0 = aSq*a1*a1 - c0*c0;
+        var e1 = aSq*2*a1*a11 - 2*b1*c0;
+        var e2 = aSq*(a11*a11 + a1*a1/bSq) - (b1*b1 + 2*c2*c0);
+        var e3 = aSq*2*a1*a11/bSq - 2*b1*c2;
+        var e4 = aSq*a11*a11/bSq - c2*c2;
+        if (debugC) console.log("e0, e1, e2, e3, e4 = " + e0 + ", " + e1 + ", " + e2 + ", " + e3 + ", " + e4); 
+        solns = solveQuartic(e4, e3, e2, e1, e0);
+        //solns = solveCubic(e3, e2, e1, e0);
+        //solns = solveQuadratic(e2, e1, e0); // Decent approximation when soln is not complex
+        
+        if (solns.length > 0) {
+          var maxYc = 0;
+          var iMaxYc = 0;
+          //var intersections = [];
+          for (var i = 0; i < solns.length; i++) {
+            var yc = solns[i];
+            var signFactor = 1;
+            var xc = a*Math.sqrt(1 + yc*yc/bSq);
+            var check2 = a0 + a1*xc + a2*xc*xc + b1*yc + b2*yc*yc + a11*xc*yc;
+            if (Math.abs(check2) > eps) {
+              if (debugC) console.log("Bad solution (" + i + "): a0 + a1*x + b1*y + ... gives " + check2 + " instead of 0");
+              //if (debugC) console.log("Bad solution (" + i + "): a0 + a1*x + b1*y + ... gives " + check2.toFixed(3) + " instead of 0");
+            } else {
+              if (debugC) console.log("Solution " + i + ": (x,y) = " + xc.toFixed(3) + ", " + yc.toFixed(3));
+              var xcT = xc * Math.cos(theta12) - yc * Math.sin(theta12);
+              var ycT = xc * Math.sin(theta12) + yc * Math.cos(theta12);
+              xcT += p12.x;
+              ycT += p12.y;
+              if (debugC) console.log("After translating: (x,y) = " + xcT + ", " + ycT);
+              var pc = new point(xcT,ycT,0);
+              var dist1 = pc.dist(p1) - p1.weight;
+              var dist2 = pc.dist(p2) - p2.weight;
+              var dist3 = pc.dist(p3) - p3.weight;
+              if (Math.abs(dist1 - dist2) < 1e-8 && Math.abs(dist1 - dist3) < 1e-8) {
+                if (debugD) console.log("Valid solution: " + i + ": (x,y) = " + xcT.toFixed(3) + ", " + ycT.toFixed(3));
+                //return pc;
+                if (Math.abs(yc) > maxYc) {
+                  maxYc = Math.abs(yc);
+                  iMaxYc = intersections.length;
+                }
+                intersections.push(pc);
+              } else {
+                if (debugC) console.log("soln %d: distances 1,2,3 = %s, %s, %s", i, dist1.toFixed(3), dist2.toFixed(3), dist3.toFixed(3));
+              }
+            }
+          }
+          if (intersections.length == 0 && debugC) console.log("No solutions are valid");
+        } else {
+          console.log("No real solutions to quartic");
+        }
+      } else console.log("Weight difference greater than distance between points")
+      if (intersections.length > 1) {
+        console.log("intersections, iMaxYc");
+        console.log(intersections)
+        console.log(iMaxYc)
+      }
+      return [intersections, iMaxYc];
+    }
+          
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var useRandomWeights = true;
+    var includeDebugDrawing = 0;
+    
+    var linewidth = 5;
+    context.lineWidth = linewidth;
+    context.fillStyle = 'red'
+    context.strokeStyle = 'black';
+    
+    var startX = 0;
+    var startY = 0;
+    // Maximum allowable error in float calculations
+    var eps = 1e-6; //1e-8
+
+    var scale = 100; // To keep quartic equation solver more normalized
+    
+    
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    
+    canvas.width = window.innerWidth;
+    var heightOffset = 100;
+    canvas.height = window.innerHeight - heightOffset;
+    context.maxDistance = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    var dy=0.01;
+    var iMaxAllowed = Math.round(0.01*context.maxDistance/dy);
+    var points = [];
+    var removedPoints = [];
+    var triangulation = [];
+    var ints = [];
+    
+    
+    debugQuartic = 0;
+    if (debugQuartic) {
+      //solns = solveQuartic(2,5,4,3,1);
+            
+      solns = solveQuartic(1,-1.5,-2,1.5,1);
+      //console.log("Roots: -1, -0.5, 1, 2")
+      
+      //solns = solveQuartic(1,-1,-3,1,2);
+      //console.log("Roots: -1, -1, 1, 2")
+      
+      //solns = solveQuartic(1,8,21,22,8);
+      solns = solveQuartic(3,5,3,3,1.8);
+      //solns = solveQuartic(3,5,4,3,1.7);
+    }
+
+    debugSets = 0;
+    if (debugSets) {
+      s = new set();
+      s.add(5);
+      s.add(3);
+      s.add(1);
+      s.add(9);
+      s.add(5);
+      s.print();
+
+      s.remove(3);
+      s.print();
+
+      ps = [2,4,1,4,3];
+      s.addMultiple(ps);
+      s.print();
+    }
+    
+    debug = 0;
+    
+    if (debug) {
+      var tc = 1;
+
+      loadTestCase(tc);
+
+      /*
+      p1 = new point(3,5.3,0);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);*/
+      
+      //p1 = new point(300,180,55);
+      //p1 = new point(0.8,0.8,2.5);
+      //p1 = new point(4.8,2.8,2.5); // This gives 2 valid intersections (small weight cell becomes a thin bubble)
+      //p1 = new point(5.5,1.8,0.5);
+      //p1 = new point(5.5,5,2.5);
+
+            
+      //p1 = new point(2.71,0.52,0.5);
+      //testAddingPoint(2.71, 0.52, 0.6, points, triangulation);      
+      //testAddingPoint(7.12,6.02,3.4, points, triangulation);      
+      //testAddingPoint(2.8, 6.4, 0.1, points, triangulation);
+
+      
+      /*
+      ints.push(findHyperbolaIntersection(points[0], points[1], points[2]));      
+      for (var i = 0; i < ints.length; i++)
+        ints[i].draw(context);*/
+    }
+
+    function loadTestCase(tc) {
+      points = [];
+      removedPoints = [];
+      triangulation = [];
+      ints = [];
+
+      // Use tc == 0 for blank canvas
+
+      if (tc == 1) {
+        testAddingPoint(1, 5, 1.4, points, triangulation);      
+        testAddingPoint(5.5, 2.8, 2.5, points, triangulation);      
+        testAddingPoint(4.5, 5.5, 0.5, points, triangulation);
+        testAddingPoint(3.61, 3.74, 0.51, points, triangulation);
+        // Draws extra curve
+      }
+
+      if (tc == 2) {
+        // No intersections: working now
+        testAddingPoint(5.5, 2.8, 2.5, points, triangulation);      
+        //testAddingPoint(1, 5, 1.4, points, triangulation);      
+        testAddingPoint(4.5, 5.5, 0.5, points, triangulation);
+        testAddingPoint(3, 0.3, 0.45, points, triangulation);
+        // Add point with complete loop and it failed (not anymore)
+        testAddingPoint(3.82, 1.24, 0.5, points, triangulation);
+      }
+      
+      if (tc == 3) {
+        // Hyperbola segments for a point won't always start and end going to
+        // infinite. Need to check for closed loops.
+
+        //testAddingPoint(3.5, 3.5, 0, points, triangulation);      
+        testAddingPoint(3.5, 3.5, 0.5, points, triangulation);      
+
+        //testAddingPoint(1, 3.5, 2, points, triangulation);      
+        testAddingPoint(1, 3.5, 2.7, points, triangulation);      
+
+        //testAddingPoint(4.5, 5.5, 0.5, points, triangulation);
+
+        //testAddingPoint(6, 4.5, 1, points, triangulation);
+        testAddingPoint(6, 4.5, 0.4, points, triangulation);
+      }
+
+      if (tc == 4) {
+        // 
+        testAddingPoint(1, 5, 1.4, points, triangulation);      
+        testAddingPoint(5.5, 2.8, 2.5, points, triangulation);      
+        testAddingPoint(4.5, 5.5, 0.5, points, triangulation);
+        testAddingPoint(3, 0.3, 0.45, points, triangulation);
+        testAddingPoint(6.45, 0.45, 0.49, points, triangulation);
+
+        // Modify temporarily to test merging
+        //testAddingPoint(1.2, 0.8, 0.2, points, triangulation);
+      }
+
+      if (tc == 5) {
+        // Unweighted Voronoi diagram
+        testAddingPoint(1, 5, 0.1, points, triangulation);      
+        testAddingPoint(5.5, 2.8, 0.2, points, triangulation);      
+        testAddingPoint(4.5, 5.5, 0.15, points, triangulation);
+        testAddingPoint(3, 0.3, 0.3, points, triangulation);
+      }
+
+      if (tc == 6) {
+        testAddingPoint(2.1, 2.1, 0.5, points, triangulation);      
+        testAddingPoint(5.5, 2.2, 0.4, points, triangulation);      
+        testAddingPoint(0.75, 2.7, 2.0, points, triangulation);
+      }
+
+      var np = points.length;
+      for(var i=0; i<np; i++) console.log("Point " + i + ": (" + points[i].x + ", " + points[i].y + "), weight = " + points[i].weight);
+      drawPolygon(points, canvas, context, triangulation);
+    }
+
+    function testAddingPoint(x, y, w, points, triangulation) {
+      var p1 = new point(x, y, w);
+      points.push(p1);
+      removePointsWithWeightTooLow(points, removedPoints);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+    }
+		
+		function randomizeWeights(flag) {
+		  useRandomWeights = flag;
+		  if (flag) chooseRandomWeight();
+		}
+		
+		function chooseRandomWeight() {
+		  var maxWeight = context.canvas.height/2;
+		  var newWeight = Math.floor(Math.random() * maxWeight);
+		  console.log(newWeight);
+		  document.getElementById("newPointWeight").value = newWeight;
+		}
+    
+    function hyperbola(y,d,w) {
+      // Hyperbola between (0,0) and (d,0) with weight difference w
+      // w = weight(0) - weight(d)
+      // (x - d/2)^2 / (w/2)^2 - 4y^2/(d^2 - w^2) = 1
+      // x = d/2 +- (w/2) sqrt(1 + 4y^2 / (d^2 - w^2))
+      if (d < Math.abs(w)) w *= (d+0.0001) / Math.abs(w);
+      return 0.5*d + 0.5*w * Math.sqrt( 1 + 4*y*y / (d*d - w*w));
+    }
+    
+    function plotHyperbolaFromPoints(ctx, p1, p2) {
+      //var iMin = 0;
+      var dy=0.04;
+      var iMax = Math.round(ctx.maxDistance/(scale*dy));
+      var iMin = -iMax;
+      var d = p1.dist(p2);
+      var ydiff = p2.y - p1.y;
+      var xdiff = p2.x - p1.x;
+      var theta = Math.atan2(ydiff, xdiff)
+      ctx.beginPath();
+      //ctx.lineWidth = 1;
+      //ctx.strokeStyle = "black";
+      //ctx.moveTo(p1.x, p1.y);
+      //ctx.lineTo(p1.x + d*Math.cos(theta), p1.y + d*Math.sin(theta));
+      var w = p1.weight - p2.weight;
+            
+      var y0 = p1.y;
+      var x0 = p1.x;
+
+      for (var i=iMin;i<=iMax;i++) {
+      yy = dy*i; xx = hyperbola(yy,d,w);
+      //yy = dy*i; xx = scale*hyperbola(yy/scale,d,w);
+      var xt =  xx*Math.cos(theta) + yy*Math.sin(theta);
+      var yt = -xx*Math.sin(theta) + yy*Math.cos(theta);
+      if (i==iMin) ctx.moveTo(scale*(x0+xt),scale*(y0-yt));
+      else         ctx.lineTo(scale*(x0+xt),scale*(y0-yt));
+      }
+
+     /* 
+      w *= -1;
+      for (var i=iMin;i<=iMax;i++) {
+      yy = dy*i; xx = hyperbola(yy,d,w);
+      //yy = dy*i; xx = scale*hyperbola(yy/scale,d,w);
+      var xt =  xx*Math.cos(theta) + yy*Math.sin(theta);
+      var yt = -xx*Math.sin(theta) + yy*Math.cos(theta);
+      if (i==iMin) ctx.moveTo(scale*(x0+xt),scale*(y0-yt));
+      else         ctx.lineTo(scale*(x0+xt),scale*(y0-yt));
+      }
+     */ 
+      
+      ctx.stroke();
+    }
+    
+    function plotHyperbolaSegment(ctx, p1, p2, lowerBound, upperBound) {
+      //Plot CW from intersection
+      var iMax = iMaxAllowed;
+      var iMin = -iMax;
+      var d = p1.dist(p2);
+      var ydiff = p2.y - p1.y;
+      var xdiff = p2.x - p1.x;
+      var theta = Math.atan2(ydiff, xdiff)
+      ctx.beginPath();
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "black";
+      //ctx.moveTo(p1.x, p1.y);
+      //ctx.lineTo(p1.x + d*Math.cos(theta), p1.y + d*Math.sin(theta));
+      var w = p1.weight - p2.weight;
+      
+      var y0 = p1.y;
+      var x0 = p1.x;
+      
+      if (lowerBound != 0) {
+        //console.log("Lowerbound");
+        var xi = lowerBound.x;
+        var yi = lowerBound.y;
+        //var xIntT = (xi-x0)*Math.cos(theta) - (yi-y0)*Math.sin(theta);
+        var yIntT = (xi-x0)*Math.sin(theta) - (yi-y0)*Math.cos(theta);
+        //console.log(lowerBound);
+        iMin = Math.round(yIntT/dy);
+        /*if (p2.x > x0) {
+          iMin = Math.round(yIntT/dy);
+        } else {
+          iMax = Math.round(yIntT/dy);
+        }*/
+      }
+      
+      if (upperBound != 0) {
+        //console.log("Upperbound");
+        var xi = upperBound.x;
+        var yi = upperBound.y;
+        //var xIntT = (xi-x0)*Math.cos(theta) - (yi-y0)*Math.sin(theta);
+        var yIntT = (xi-x0)*Math.sin(theta) - (yi-y0)*Math.cos(theta);
+        iMax = Math.round(yIntT/dy);
+        /*if (p2.x > x0) {
+          iMax = Math.round(yIntT/dy);
+        } else {
+          iMin = Math.round(yIntT/dy);
+        }*/
+      }
+
+      if (iMin > iMax) {
+        var tmp = iMin;
+        iMin = iMax;
+        iMax = tmp;
+      }
+      
+      //console.log("iMin, iMax = " + iMin + ", " + iMax);
+            
+      for (var i=iMin;i<=iMax;i++) {
+      yy = dy*i; xx = hyperbola(yy,d,w);
+      //yy = dy*i; xx = scale*hyperbola(yy/scale,d,w);
+      var xt =  xx*Math.cos(theta) + yy*Math.sin(theta);
+      var yt = -xx*Math.sin(theta) + yy*Math.cos(theta);
+      if (i==iMin) ctx.moveTo(scale*(x0+xt),scale*(y0-yt));
+      else         ctx.lineTo(scale*(x0+xt),scale*(y0-yt));
+      }
+      
+      ctx.stroke();
+      //ctx.fill();
+    }
+
+    function orderNeighborsOfIntersection(p, points, j1, j2, reverseDirs) {
+      // Returns [CW neighbor index, CCW neighbor index] for two neighbors j1,
+      // j2 of a hyperbola intersection with p.
+      var p1 = points[j1];
+      var p2 = points[j2];
+      var angle1 = p.angle(p1); //Math.atan2(-(p1.y - p.y), p1.x - p.x);
+      var angle2 = p.angle(p2); //Math.atan2(-(p2.y - p.y), p2.x - p.x);
+      //console.log("p1, p2 indices = " + j1 + ", " + j2);
+      //console.log("angle1, angle2 = " + angle1 + ", " + angle2);
+
+      /*
+      var reverseDirs = false;
+      var angleInt1Diff = intCangle - angle1;
+      if (angleInt1Diff < 0) angleInt1Diff += 2*Math.PI;
+      var angleInt2Diff = intCangle - angle2;
+      if (angleInt2Diff < 0) angleInt2Diff += 2*Math.PI;
+      angleInt1Diff = fmin(angleInt1Diff, 2*Math.PI - angleInt1Diff);
+      angleInt2Diff = fmin(angleInt2Diff, 2*Math.PI - angleInt2Diff);
+      if (angleInt1Diff + angleInt2Diff > Math.PI) {
+        // This intersection goes the "long" way around the circle to connect
+        // p1 to p2 (it must be a second intersection), and CW/CCW directions
+        // should be reversed
+        console.log("Reversing neighbor order, angleDiffTotal = " + angleInt1Diff + angleInt2Diff);
+        reverseDirs = true;
+      }*/
+
+      var angleDiff = (angle2 - angle1);
+      if (angleDiff < 0) angleDiff += 2*Math.PI;
+      //console.log("angleDiff = " + angleDiff);
+      //if (angle1 > angle2) {
+      //console.log(Math.PI);
+      if (angleDiff > Math.PI) {
+        if (!reverseDirs) return [j2, j1];
+        else return [j1, j2];
+        //closestNeighborsCCW.push(j1);
+        //closestNeighborsCW.push(j2);
+      } else {
+        if (!reverseDirs) return [j1, j2];
+        else return [j2, j1];
+        //closestNeighborsCCW.push(j2);
+        //closestNeighborsCW.push(j1);
+      }
+    }
+
+    function printSets(ic) {
+      // Print iConnSetNeighbors, an array of sets
+      var ns = ic.length;
+      for (var i=0; i<ns; i++) {
+        console.log("Set %d:", i);
+        ic[i].print();
+      }
+    }
+
+    function separateIntoConnectedSets(intsI) {
+      // Separate intersections in intsI into connected sets to be drawn in
+      // findConnectedHyperbolaSegments
+      var debugC = 0;
+
+      var debugMerging = 0; // For specific tc=4 with added point to make sure that merge algorithm is tested
+      if (debugMerging) {
+        var tmp = intsI[1];
+        intsI[1] = intsI[3];
+        intsI[3] = tmp;
+      }
+      if (debugC) console.log(intsI);
+      var np = intsI.length;
+      var iConnSets = [[intsI[0]]];
+      var set0 = new set();
+      set0.add(intsI[0].neighbor1);
+      set0.add(intsI[0].neighbor2);
+      var iConnSetNeighbors = [set0];
+      if (debugC) {
+        console.log("iConnSetNeighbors, iConnSets:");
+        printSets(iConnSetNeighbors);
+        console.log(iConnSets);
+      }
+
+      for (var l=1; l<np; l++) {
+        var j = intsI[l].neighbor1;
+        var k = intsI[l].neighbor2;
+        if (debugC) console.log("l=%d; j,k = %d,%d", l, j, k);
+
+        var added = false;
+        var addedIndex = -1;
+        var removeIndex = -1;
+        for (var m=0; m<iConnSets.length; m++) {
+          if (debugC) {
+            console.log("iConnSetNeighbors, iConnSets: (m=%d)", m);
+            printSets(iConnSetNeighbors);
+            console.log(iConnSets);
+          }
+          if (iConnSetNeighbors[m].contains(j) || iConnSetNeighbors[m].contains(k)) {
+            if (!added) {
+              iConnSetNeighbors[m].add(j);
+              iConnSetNeighbors[m].add(k);
+              iConnSets[m].push(intsI[l]);
+              added = true;
+              addedIndex = m;
+            } else {
+              // Need to merge: earlier iConnSet already has j or k as neighbor
+              if (debugC) console.log("merge: l=%d, m=%d; j,k=%d,%d", l, m, j, k);
+              //for (var ii=0; ii<iConnSets[m].length; ii++) 
+              while (iConnSets[m].length > 0) {
+                var intC = iConnSets[m].pop();
+                iConnSets[addedIndex].push(intC);
+              }
+              iConnSetNeighbors[addedIndex].addMultiple(iConnSetNeighbors[m].elements);
+              if (removeIndex > -1)
+                console.log("Error, don't expect to remove multiple sets in one intersection!");
+              removeIndex = m;
+            }
+          }
+        }
+        if (removeIndex > -1) {
+          iConnSets.splice(removeIndex,1);
+          iConnSetNeighbors.splice(removeIndex,1);
+        }
+        if (!added) {
+          var newSet = new set();
+          newSet.add(j);
+          newSet.add(k);
+          iConnSetNeighbors.push(newSet);
+          iConnSets.push([intsI[l]]);
+        }
+      }
+
+      if (debugC) {
+        console.log("iConnSetNeighbors, iConnSets:");
+        console.log(iConnSetNeighbors);
+        console.log(iConnSets);
+      }
+      return iConnSets;
+    }
+    
+    function findConnectedHyperbolaSegments(ctx, points, i, intsI, connSet, isoSet) {
+      // Find and plot connected segments of hyperbolas to make weighted Voronoi region about point i, using intersections intsI and corresponding neighbors.
+      p = points[i];
+      
+      np = intsI.length;
+
+      var debugC = 0;
+      if (debugC) {
+        console.log("intsI:");
+        console.log(intsI);
+      }
+      
+      // Sort intersections by angle relative to p and take the closest.
+      intsI.sort(function(a, b) {
+        return a.angle - b.angle;
+      });
+      
+      if (debugC)
+        for(var j=1; j<np; j++) console.log(intsI[j].angle);
+      
+      // Find intersection closest to point i
+      var closestInt = 0;
+      var intDistSq = intsI[0].distSq;
+      for(var j=1; j<np; j++) {
+        var distJSq = intsI[j].distSq;
+        if (distJSq < intDistSq) {
+          intDistSq = distJSq;
+          closestInt = j;
+        }
+      }
+      
+      // Create list of closest neighbors of length at most np + 1 (which would correspond to a new neighbor between each intersection)
+      // Start by going CCW from intersection point
+      var closestNeighborsCCW = [];
+      var closestNeighborsCW = [];
+      var intC = intsI[closestInt];
+      var j1 = intC.neighbor1;
+      var j2 = intC.neighbor2;
+      var orderedNeighbors = orderNeighborsOfIntersection(p, points, j1, j2, intC.isFurtherOfTwoIntersections)
+      closestNeighborsCW.push(orderedNeighbors[0]);
+      closestNeighborsCCW.push(orderedNeighbors[1]);
+      
+      if (debugC) {
+        console.log("CCW neighbors: " + closestNeighborsCCW);
+        console.log("CW neighbors: " + closestNeighborsCW);
+      }
+      
+      
+      var intsCloseCCW = [];
+      var intsCloseCW = [];
+      
+      // Search through intsI to find next intersection (by angle) in CCW and CW directions involving the closest neighbor
+      // Add these neighbors and corresponding intersections to arrays and use these to draw diagram
+      
+      var j = closestInt + 1;
+      if (j == np) j = 0;
+      //while (j < np) 
+      // Can't trust beginning and end points of list (sorted by angle)
+      // Need to loop through until we reach the starting point from the other
+      // side.
+      var backToBeginning = false; // Allows you to check closestInt too after
+      // looping in case it's a closed loop
+      //while (j != closestInt) 
+      while (!backToBeginning) {
+        var foundNeighboringIntersection = false;
+        var nCCW = closestNeighborsCCW.length;
+        var nCur = closestNeighborsCCW[nCCW-1];
+        while (!foundNeighboringIntersection && !backToBeginning) {
+          if (debugC)
+            console.log("j = " + j);
+          var n1 = intsI[j].neighbor1;
+          var n2 = intsI[j].neighbor2;
+          var intC = intsI[j];
+          var orderedNeighbors = orderNeighborsOfIntersection(p, points, n1, n2, intC.isFurtherOfTwoIntersections)
+          var CWneighbor = orderedNeighbors[0];
+          var CCWneighbor = orderedNeighbors[1];
+          if (debugC)
+            console.log("CWneighbor, CCWneighbor = " + CWneighbor + ", " + CCWneighbor);
+          if (CWneighbor == nCur) {
+            closestNeighborsCCW.push(CCWneighbor);
+            intsCloseCCW.push(intsI[j].point);
+            foundNeighboringIntersection = true;
+          }
+          j += 1;
+          if (j == np) j = 0;
+          if (j == closestInt) backToBeginning = true;
+        }
+      }
+      
+      if (debugC) {
+        console.log("CCW neighbors after: " + closestNeighborsCCW);
+        console.log("closestInt = " + closestInt);
+      }
+      var j = closestInt - 1;
+      var backToBeginning = false; // Allows you to check closestInt too after
+      //(not any more)
+      if (j == -1) j = np-1;
+      //while (j > -1) 
+      //while (j != closestInt) 
+      while (!backToBeginning) {
+        if (debugC)
+          console.log("j = " + j);
+        var foundNeighboringIntersection = false;
+        var nCW = closestNeighborsCW.length;
+        var nCur = closestNeighborsCW[nCW-1];
+        while (!foundNeighboringIntersection && !backToBeginning) {
+          var n1 = intsI[j].neighbor1;
+          var n2 = intsI[j].neighbor2;
+          var intC = intsI[j];
+          var orderedNeighbors = orderNeighborsOfIntersection(p, points, n1, n2, intC.isFurtherOfTwoIntersections)
+          var CWneighbor = orderedNeighbors[0];
+          var CCWneighbor = orderedNeighbors[1];
+          if (CCWneighbor == nCur) {
+            closestNeighborsCW.push(CWneighbor);
+            intsCloseCW.push(intsI[j].point);
+            foundNeighboringIntersection = true;
+          }
+          /*
+          if (n1 == nCur) {
+            closestNeighborsCW.push(n2);
+            intsCloseCW.push(intsI[j].point);
+            foundNeighboringIntersection = true;
+          } else if (n2 == nCur) {
+            closestNeighborsCW.push(n1);
+            intsCloseCW.push(intsI[j].point);
+            foundNeighboringIntersection = true;
+          } */
+          j -= 1;
+          if (j == -1) j = np-1;
+          if (j == closestInt) backToBeginning = true;
+        }
+      }
+      
+      if (debugC)
+        console.log("CW neighbors after: " + closestNeighborsCW);
+      var closestNeighbors = [];
+      var intsClose = [];
+
+      var completeLoop = false;
+      // Completed loop of intersections:
+      var nCW = closestNeighborsCW.length;
+      var nCCW = closestNeighborsCCW.length;
+
+      // Get cumulative weight difference between p and other points that are
+      // neighbors of ints to see if complete loop should be allowed
+      var wCum = 0;
+      for (var k = 0; k < nCW; k++) {
+        wCum += p.weight - points[closestNeighborsCW[k]].weight;
+      }
+      for (var k = 0; k < nCCW; k++) {
+        wCum += p.weight - points[closestNeighborsCCW[k]].weight;
+      }
+      if (closestNeighborsCW[nCW-1] == closestNeighborsCCW[0] &&
+      closestNeighborsCCW[nCCW-1] == closestNeighborsCW[0]) {
+        if (wCum < 0) {
+          completeLoop = true;
+          console.log("Complete loop");
+        } else console.log("Not allowing complete loop: wCum = " + wCum);
+        //completeLoop = false;
+        //closestNeighborsCW.pop(); // Only have 1 duplicate after combining
+        // closestNeighborsCW will become reverse of CCW
+        //closestNeighbors = closestNeighborsCCW;
+        closestNeighbors = [closestNeighborsCW[0]].concat(closestNeighborsCCW);
+        //closestNeighbors.pop(); 
+        intsClose = [intsI[closestInt].point].concat(intsCloseCCW);
+      } else {
+        // Need to reverse CW list before adding it
+        closestNeighborsCW = closestNeighborsCW.reverse();
+        intsCloseCW = intsCloseCW.reverse();
+        
+        intsClose = intsCloseCW.concat([intsI[closestInt].point]);
+        intsClose = intsClose.concat(intsCloseCCW);
+        
+        var closestNeighbors = closestNeighborsCW.concat(closestNeighborsCCW);
+      }
+      if (debugC) {
+        console.log("intsClose:");
+        console.log(intsClose);
+        console.log("closestNeighbors " + closestNeighbors);
+      }
+      var lowerBound = 0;
+      var upperBound = 0;
+      var nI = intsClose.length;
+      for (var j=0; j<closestNeighbors.length; j++) {
+        //console.log("j, intsI[j] = " + j + ", " + intsI[j]);
+        if (j > 0) lowerBound = intsClose[j-1];
+        else {
+          if (completeLoop) lowerBound = intsClose[nI-1];
+          else lowerBound = 0;
+          //lowerBound = 0;
+        }
+        if (j < closestNeighbors.length-1) upperBound = intsClose[j];
+        else {
+          if (completeLoop) upperBound = intsClose[0];
+          else upperBound = 0;
+          //upperBound = 0;
+        }
+
+        //console.log("upperbound, lowerbound = " + upperBound + ", " + lowerBound);
+        if (debugC)
+          console.log("plotting neighbor " + closestNeighbors[j]);
+        plotHyperbolaSegment(ctx, p, points[closestNeighbors[j]], lowerBound, upperBound); //intsI[j]);
+      }
+      
+      /*
+      var w01 = p.weight - p1.weight;
+      var w02 = p.weight - p2.weight;      
+      var d01 = p.dist(p1);
+      var d02 = p.dist(p2);
+      var pUp1 = new point(xUp1, yUp1, 0);
+      var pDown1 = new point(xDown1, yDown1, 0);
+      var distUp1 = p.distSq(pUp1);
+      var distDown1 = p.distSq(pDown1);  
+      var pUp2 = new point(xUp2, yUp2, 0);
+      var pDown2 = new point(xDown2, yDown2, 0);
+      var distUp2 = p.distSq(pUp2);
+      var distDown2 = p.distSq(pDown2);
+      */
+      
+    }
+
+    function removePointsWithWeightTooLow(points, removedPoints) { 
+      var np = points.length;
+      console.log("Start: points.length, removedPoints.length = %d, %d", points.length, removedPoints.length);
+      var removeIs = [];
+      for (var i=0; i<np-1; i++) {
+        var p1 = points[i];
+        for (var j=i+1; j<np; j++) {
+          var p2 = points[j];
+          var w12 = p1.weight - p2.weight;
+          var d12 = p1.dist(p2);
+          if (Math.abs(w12) >= d12) {
+            if (w12 > 0) removeIs.push(j);
+            else removeIs.push(i);
+            console.log("w12 = %d, d12 = %f", w12, d12);
+          }
+        }
+      }
+
+      // Reverse-sort removeIs, so that points[removeIs[i]] is always the
+      // original point that was referred to (no shifting required)
+      removeIs.sort(function(a, b) {
+        return -(a - b);
+      });
+
+      for (var i=0; i<removeIs.length; i++) {
+        var removeIC = removeIs[i]; 
+        console.log("i=%d, removeIC = %d", i, removeIC);
+        points[removeIC].fillStyle = 'blue'      
+        removedPoints.push(points[removeIC]);
+        points.splice(removeIC,1);
+      }
+      console.log("points.length, removedPoints.length = %d, %d", points.length, removedPoints.length);
+      console.log("points, removedPoints:");
+      console.log(points);
+      console.log(removedPoints);
+    }
+    
+    function mousePressed (e) {
+		  var weight = parseInt(document.getElementById('newPointWeight').value, 0);
+      //var startX = e.x;
+      //var startY = e.y;
+      // pageX, pageY needed for firefox
+      var startX = e.pageX;
+      var startY = e.pageY;
+      var newPoint = new point(startX/scale, startY/scale, weight/scale);
+      console.log("x,y = " + startX + ", " + startY);
+      points.push(newPoint);
+      removePointsWithWeightTooLow(points, removedPoints);
+      
+      addPointToTriangulation(newPoint, points, triangulation);
+      
+      flipDiagonals(points, triangulation);
+      
+      if (useRandomWeights)
+        chooseRandomWeight();
+      
+      requestAnimFrame(function() {
+        drawPolygon(points, canvas, context, triangulation);
+      });
+    }
+    
+    function mouseReleased (e) {
+    }
+    
+    
+    function drawPolygon(points, canvas, context, triangulation) {
+    
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - heightOffset;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      
+      context.beginPath();
+      
+      var np = points.length;
+      var debugC = 0;
+
+      
+      if (includeDebugDrawing) {
+        //context.strokeStyle = "blue";
+        context.strokeStyle = "rgb(200,200,255)";
+        for(i=0; i<np-1; i++) {
+          ni = triangulation[i];
+          for(j=i+1; j<np; j++) {
+            //console.log("i = " + i + ", ni.indexof(" + j + ") = " + ni.indexOf(j));
+            if (ni.indexOf(j) > -1) {
+              context.moveTo(scale*(points[i].x), scale*(points[i].y));
+              context.lineTo(scale*(points[j].x), scale*(points[j].y));
+              context.stroke();
+            }
+          }
+        }
+      }
+      
+      ints = [];
+      var intersectionObject = [];
+	    for(i=0; i<np-1; i++)
+        intersectionObject.push([]);
+        
+      /*console.log(intersectionObject[1]);
+      intersectionObject[1] = intersectionObject[1].concat([5]);
+      console.log(intersectionObject[1]);*/
+      context.strokeStyle = "rgb(200,200,200)";
+      context.lineWidth = 1;
+      var includeAllDelaunayHyperbolas = includeDebugDrawing; //true;
+      if (includeAllDelaunayHyperbolas) { 
+        for(i=0; i<np-1; i++) {
+        //var i = 0;
+        //
+          var iPlot = 2;
+          var pI = points[i];
+          ni = triangulation[i];
+          var intsI = [];
+          for(j=i+1; j<np; j++) {
+            var pJ = points[j];
+            var intsJ = [];
+            //console.log("i = " + i + ", ni.indexof(" + j + ") = " + ni.indexOf(j));
+            if (ni.indexOf(j) > -1) {
+            //
+            //if (i == iPlot || j == iPlot) 
+                plotHyperbolaFromPoints(context, points[i], points[j]);
+            }
+          }
+        }
+      }
+        
+      context.strokeStyle = "black";
+      // Have to consider all neighbors, not just delaunay triangulation
+      var connSet = new set(); // keep track of all neighbors that are connected via intersecting hyperbolas
+      var isoSet = new set();
+      for(i=0; i<np-1; i++) {
+        var pI = points[i];
+        var intsI = [];
+        for(j=i+1; j<np; j++) {
+          var pJ = points[j];
+          var intsJ = [];
+          for(k=j+1; k<np; k++) {
+            var pK = points[k];
+            var intsK = [];
+            var soln = findHyperbolaIntersection(points[i], points[j], points[k]);
+            var intsC = soln[0];
+            var nInts = intsC.length;
+            for (var l=0; l<nInts; l++) {
+              var further = false;
+              var pC = intsC[l];
+              if (pC.contained(0, 0, canvas.width/scale, canvas.height/scale)) {
+                if (nInts > 1 && l == soln[1]) {
+                  further = true;
+                  console.log("Intersection at " + pC.x + ", " + pC.y + " further");
+                }
+                if (debugC && (i == 4 || j == 4 || k == 4)) {
+                  console.log("i, j, k = " + i + ", " + j + ", " + k);
+                  console.log("pC = (" + pC.x + ", " + pC.y + ")");
+                }
+                ints.push(pC);
+                var angleC = pI.angle(pC);
+                intsI.push( { point: pC, neighbor1: j, neighbor2: k, angle: angleC, distSq: pI.distSq(pC), isFurtherOfTwoIntersections: further });
+
+                var angleJ = pJ.angle(pC); //before sign change: Math.atan2(pC.y - pJ.y, pC.x - pJ.x);
+                intsJ.push( { point: pC, neighbor1: i, neighbor2: k, angle: angleJ, distSq: pJ.distSq(pC), isFurtherOfTwoIntersections: further });
+
+                var angleK = pK.angle(pC); //before sign change: Math.atan2(pC.y - pJ.y, pC.x - pJ.x);
+                intsK.push( { point: pC, neighbor1: i, neighbor2: j, angle: angleK, distSq: pK.distSq(pC), isFurtherOfTwoIntersections: further });
+
+                // Even with intersections, most of these won't be relevant.
+                // Form connSet later.
+                connSet.add(i);
+                connSet.add(j);
+                connSet.add(k);
+              }
+            }
+            if (k < np-1) intersectionObject[k] = intersectionObject[k].concat(intsK);
+          }
+          // Don't need to draw hyperbolas for last index (k=np-1)
+          if (j < np-1) intersectionObject[j] = intersectionObject[j].concat(intsJ);
+        }
+        intersectionObject[i] = intersectionObject[i].concat(intsI);
+        // Construct connected hyperbola segments for point i and plot them
+        //if (i < 2)
+        //if (i == 1)
+        //if (i == 0)
+        //if (i == 0)
+        if (i < np-1 && connSet.contains(i)) {
+          if (debugC) console.log("i = " + i);
+          iConnSets = separateIntoConnectedSets(intersectionObject[i]);
+          for (var ic = 0; ic < iConnSets.length; ic++)
+            //if (i == 0) findConnectedHyperbolaSegments(context, points, i, iConnSets[ic]);
+            findConnectedHyperbolaSegments(context, points, i, iConnSets[ic]);
+          //findConnectedHyperbolaSegments(context, points, i, intersectionObject[i]);
+        }
+        else isoSet.add(i);
+      }
+
+      if (!connSet.contains(np-1) && np > 1) isoSet.add(np-1);
+      
+      if (debugC) {
+        console.log(intersectionObject);
+        console.log("connSet:");
+        connSet.print();
+        console.log("isoSet:");
+        isoSet.print();
+      }
+      var isoSetArr = isoSet.elements;
+      var nIso = isoSetArr.length;
+      for (var ii=0; ii<nIso; ii++) {
+        var i = isoSetArr[ii];
+        var pi = points[i];
+        var wi = points[i].weight;
+        var minDmW = 1e8;
+        var closestJ = -1;
+        for (var j=0; j<np; j++) {
+          if (j != i) {
+            var pj = points[j];
+            DmWcur = pi.dist(pj) - (pj.weight - wi);
+            if (DmWcur < minDmW) {
+              closestJ = j;
+              minDmW = DmWcur;
+            }
+          }
+        }
+        if (debugC)
+          console.log("closestJ = " + closestJ + ", minDmW = " + minDmW);
+        context.lineWidth = 3;
+        plotHyperbolaFromPoints(context, pi, points[closestJ]);
+      }
+      for (i=0; i<np; i++) {
+        points[i].draw(context);
+      }
+
+      for (i=0; i<removedPoints.length; i++) {
+        removedPoints[i].draw(context);
+      }
+      
+      if (includeDebugDrawing) {
+        for (i = 0; i < ints.length; i++) ints[i].draw(context);
+      }
+    }
+      
+      
+  </script>
+  <hr/>
+  <input id="loadTestCaseButton" type="button" value="Load test case:" onclick="loadTestCase(parseInt(document.getElementById('testCaseDropDown').value));"/> 
+  <select name="testCaseDropdown" id="testCaseDropDown">
+  <option value="0">0</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
+  <option value="6">6</option>
+  </select>
+  |
+  Weight of added points: <input id="newPointWeight" type="text" value="50" size="4" maxlength="4"/>
+  |
+  Randomize weights of new points: <input id="randomizeWeight" type="checkbox" checked=true onclick="randomizeWeights(document.getElementById('randomizeWeight').checked)"/>
+  <br>
+  Draw Delaunay triangulation, extra hyperbolas, intersection points: <input id="drawExtraParts" type="checkbox" checked=true onclick="includeDebugDrawing = document.getElementById('drawExtraParts').checked; drawPolygon(points, canvas, context, triangulation);"/>
+<script>
+(function(){
+var srcElem = document.getElementById("script");
+if (srcElem) {
+    var dstElem = document.getElementById("scriptContainer");
+    if (dstElem) {
+        dstElem.innerText = srcElem.innerHTML;
+        }
+    }
+})();
+</script>
+</body>
+
+<p>
+Click to place sites with weight specified by text box, starting from one of 7 test cases (test case 0 is empty). The additively weighted Voronoi diagram (or <a href="http://www.cgal.org/Pkg/ApolloniusGraph2">Apollonius graph</a>) is calculated, which is a modification of the regular Voronoi diagram in which the curves dividing regions are equidistant from disks in the corresponding regions rather than sites. The weight of a site equals the radius of its disk. This leads to segments of hyperbolas between sites instead of straight lines.
+<p>
+My algorithm is buggy and fails for diagrams with more than a few points. The CGAL link above has a working implementation that is more efficient as well. My implementation is brute-force, taking the following steps for each site added:
+<ul>
+  <li>Remove any sites with a weight that is too low -- less than the weight of another site minus the distance to that site -- these are colored blue
+  <li>Find all points equidistant from any triplet of disks corresponding to weighted sites</li>
+  <ul>
+    <li>For sites <i>i,j,k</i>, this is done by finding the intersection of the hyperbolic segment between <i>i</i> and <i>j</i> and the segment between <i>i</i> and <i>k</i></li>
+    <li>Finding this intersection requires solving a quartic (4th order) polynomial equation</li>
+  </ul>
+  <li>Sort sites by weight (descending order) and loop through all sites <i>i</i> having intersection points calculated above</li>
+  <ul>
+    <li>Sort intersection points by angle, and pick the closest one <i>p</i></li>
+    <li>Note that each intersection point is a junction of 3 hyperbolic segments between sites, so for site <i>i</i>, the intersection point has clockwise and counterclockwise neighbor sites corresponding to segments equidistant from <i>i</i> and the respective sites
+    <li>Iterate through other intersections in clockwise order, finding the next intersection that has the clockwise neighbor site of <i>p</i> as a counterclockwise neighbor (so we know they are connected)</li>
+    <li>Do the same in the counterclockwise direction, and combine the two lists, keeping track of intersection points and neighbors (being careful about the possibility of complete loops as well)</li>
+    <li>Draw the hyperbola segments by using intersection points as lower and upper bounds (in rotated coordinate system)
+    <li>Note: a given site can have multiple disjoint connected sets of neighbor sites
+  </ul>
+</ul>
+
+This runs into problems with isolated sites that may only have one hyperbola segment in the diagram because of a large-weight neighbor, but because of intersections with other small-weight sites, extraneous segments are drawn (and the single desired segment is not -- test case 4 shows an example of this).
+<p>
+<a href="http://cfb.qqnoobs.com/">Home</a>
+
+</html>

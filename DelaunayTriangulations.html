@@ -1,0 +1,341 @@
+<html>
+  <head>
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+
+<title>Delaunay triangulation</title>
+
+<body>
+  <canvas id="myCanvas"></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+    //var radius = 20;
+    
+    function fmin(a, b) {
+      if (a < b) return a;
+      else return b;
+    }
+    
+    function fmax(a, b) {
+      if (a > b) return a;
+      else return b;
+    }
+    
+    function fabs(x) {
+      if (x > 0) return x;
+      else return -x;
+    }
+    
+    function point(x0, y0) {
+      this.x = x0;
+      this.y = y0;
+      this.radius = 4;
+      this.fillStyle = 'red'      
+      
+      this.draw = function(context) {
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, false);
+        context.fillStyle = this.fillStyle;
+        context.fill();   
+      }
+      
+      this.equals = function(p2) {
+        return fabs(this.x - p2.x) < 1.0e-6 && fabs(this.y - p2.y) < 1.0e-6;
+      }
+      
+      this.distSq = function(p2) {
+        var dx = p2.x - this.x;
+        var dy = p2.y - this.y;
+        return dx*dx + dy*dy;
+      }
+      
+      this.contained = function(x0, y0, w, h) {
+        result = true;
+	      if (this.x < x0 || this.y < y0) result = false;
+	      if (this.x > x0 + w || this.y > y0 + h) result = false;
+	      return result;
+      }
+    }
+    
+    function slope(p1, p2) {
+      // Slope of line from p1 to p2
+      x = p2.x - p1.x;
+      y = p2.y - p1.y;
+	    if (x != 0) return 1.0*y/x;
+	    else return y*1.0e6;
+	  }      
+    
+    function intersection(p1, p2, q1, q2) {
+	    // Returns intersection point of line passing through p1 and p2 with line passing through q1 and q2
+      var mp = slope(p1,p2);
+      var mq = slope(q1,q2);
+      var xI = (mp*p1.x - mq*q1.x + q1.y - p1.y)/(mp-mq);
+      var yI = mp*(xI - p1.x) + p1.y
+      
+      if(p1.x == p2.x) {
+        xI = p1.x;
+        yI = mq*(xI - q1.x) + q1.y;
+      } else if(q1.x == q2.x) {
+        xI = q1.x;
+        yI = mp*(xI - p1.x) + p1.y;
+      } else if(p1.y == p2.y) {
+        yI = p1.y;
+        xI = (yI - q1.y)/mq + q1.x;
+      } else if(q1.y == q2.y) {
+        yI = q1.y;
+        xI = (yI - p1.y)/mp + p1.x
+      }
+      
+      return new point(xI, yI);
+    }
+    
+    function intersectSegment(p1, p2, q1, q2) {
+      // Returns true if segment from p1 to p2 intersects segment from q1 to q2
+      var pI = intersection(p1, p2, q1, q2);
+      
+      var lowX = fmin(p1.x, p2.x);
+      var highX = fmax(p1.x, p2.x);
+      var lowY = fmin(p1.y, p2.y);
+      var highY = fmax(p1.y, p2.y);
+      
+      var lowX2 = fmin(q1.x, q2.x);
+      var highX2 = fmax(q1.x, q2.x);
+      var lowY2 = fmin(q1.y, q2.y);
+      var highY2 = fmax(q1.y, q2.y);
+      
+	    return (pI.contained(lowX,lowY,highX-lowX,highY-lowY) ) && 
+		   (pI.contained(lowX2,lowY2,highX2-lowX2,highY2-lowY2) );      
+    }
+    
+    function intersectsExistingDiagonals(ip, jp, points, diagonal) {
+      // Returns true if segment from p1 to p2 intersects any of the specified diagonals between points
+      var result = false;
+      p1 = points[ip];
+	    p2 = points[jp];
+		  var np = points.length;
+		  for(var i=0; i<np-1; i++) {
+		    for(var j=i+1; j<np; j++) {
+		      ni = diagonal[i];
+		      if (ni.indexOf(j) > -1 && !(i == ip || j == jp || i == jp || j == ip)) {
+			      var pI = intersection(p1, p2, points[i], points[j]);
+			      if (intersectSegment(p1,p2, points[i], points[j])) { // && !pI.equals(p1) && !pI.equals(p2)) {
+				    //console.log("pI = " + pI.x + ", " + pI.y);
+				      result = true;
+			      }
+			    }
+		    }
+		  }
+		  return result;
+    }
+    
+    function addPointToTriangulation(p, points, triangulation) {
+      // Add point p and corresponding new diagonals to triangulation 
+      points.push(p);
+      triangulation.push([]);
+      
+	    var np = points.length;
+	    // TODO: find best 2D array option
+	    for(var i=0; i<np-1; i++) { // added p = points[np-1] already
+	      var intersects = intersectsExistingDiagonals(i,np-1,points,triangulation);
+        if (!intersects) {
+          triangulation[i].push(np-1);
+          triangulation[np-1].push(i);
+        }
+	    }
+      //console.log("triangulation[np-1] = " + triangulation[np-1]);
+    }
+    
+    function flipDiagonals(points, triangulation) {
+      // Make triangulation Delaunay by iterating through quadrilaterals and flipping diagonals when the flipped diagonal is shorter than the original
+            
+	    var np = points.length;
+      var flipped = true;
+      
+      while(flipped) {
+        flipped = false;
+        
+        for(var i=0; i<np; i++) { // as long as diagonals are ordered and one-sided, shouldn't need to check i=np-1 or i=np-2 or i=np-3
+          if(flipped) continue;
+          var pi = points[i];
+          var ti = triangulation[i];
+          //console.log(ti);
+          for(var m=0; m<ti.length; m++) {
+            if(flipped) continue;
+            var j = ti[m];
+            var pj = points[j];
+            var tj = triangulation[j];
+            for(var n=0; n<ti.length; n++) {
+              if(flipped) continue;
+              if(m != n) {
+                var k = ti[n];
+                var kIndextj = tj.indexOf(k);
+                if(kIndextj > -1) {
+                  // Then ijk is a triangle in diagram
+                  // Find quadrilaterals with ijk by finding l such that jkl is a triangle
+                  var pk = points[k];
+                  var tk = triangulation[k];
+                  for(var o=0; o<tj.length; o++) {
+                    if(flipped) continue;
+                    var l = tj[o];
+                    if(l != i && l != j && tk.indexOf(l) > -1) {
+                      // Then jkl is a triangle in the diagram
+                      var pl = points[l];
+                      // Check that il is not already an edge
+                      if(ti.indexOf(l) < 0) {
+                        // temporarily remove edge jk from diagram
+                        tj.splice(kIndextj,1);
+                        jIndextk = tk.indexOf(j);                      
+                        tk.splice(jIndextk,1);
+                        if(pi.distSq(pl) < pj.distSq(pk) && !intersectsExistingDiagonals(i,l,points,triangulation)) {
+                          //console.log("flip " + j + "," + k + " to " + i + "," + l);  
+                          ti.push(l);
+                          var tl = triangulation[l];
+                          tl.push(i);
+                          //console.log(ti);
+                          flipped = true;
+                          continue;
+                        } else {
+                          tj.push(k);
+                          tk.push(j);
+                          kIndextj = tj.indexOf(k);
+                          //console.log("tri[0] = " + triangulation[0]);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }        
+        }
+      }
+    }
+          
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    
+    var linewidth = 5;
+    context.lineWidth = linewidth;
+    context.fillStyle = 'red'
+    context.strokeStyle = 'black';
+    
+    var startX = 0;
+    var startY = 0;
+    
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 50;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    var points = [];
+    var triangulation = [];
+    
+    debug = 0;
+    
+    if (debug) {    
+      var p1 = new point(100,100);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      //p1 = new point(100,400);
+      //addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      p1 = new point(300,400);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      p1 = new point(300,190);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      //p1 = new point(450,200);
+      //addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      //p1 = new point(400,300);
+      //addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      p1 = new point(200,50);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      p1 = new point(180,100);
+      addPointToTriangulation(p1, points, triangulation);
+      flipDiagonals(points, triangulation);
+      
+      drawPolygon(points, canvas, context, triangulation);
+    }
+    
+    function mousePressed (e) {
+      var startX = e.x;
+      var startY = e.y;
+      var newPoint = new point(startX, startY);
+      console.log("x,y = " + startX + ", " + startY);
+      addPointToTriangulation(newPoint, points, triangulation);
+      
+      flipDiagonals(points, triangulation);
+      
+      requestAnimFrame(function() {
+        drawPolygon(points, canvas, context, triangulation);
+      });
+    }
+    
+    function mouseReleased (e) {
+    }
+    
+    
+    function drawPolygon(points, canvas, context, triangulation) {
+    
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 50;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      
+      
+      context.beginPath();
+      
+      var np = points.length;
+      
+	    for(i=0; i<np-1; i++) {
+	      ni = triangulation[i];
+	      for(j=i+1; j<np; j++) {
+          //console.log("i = " + i + ", ni.indexof(" + j + ") = " + ni.indexOf(j));
+	        if (ni.indexOf(j) > -1) {
+            context.moveTo(points[i].x, points[i].y);
+            context.lineTo(points[j].x, points[j].y);
+            context.stroke();
+	        }
+	      }
+	    }
+            
+      
+      
+      for (i=0; i<np; i++) {
+        points[i].draw(context);
+      }
+    }
+      
+      
+  </script>
+
+
+</body>
+Click to place points. The <a href="https://en.wikipedia.org/wiki/Delaunay_triangulation">Delaunay triangulation</a> is automatically calculated and displayed using an incremental flip algorithm.
+<p>
+<a href="http://cfb.qqnoobs.com/">Home</a>
+
+</html>

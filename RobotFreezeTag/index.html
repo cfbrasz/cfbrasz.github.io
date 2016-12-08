@@ -1,0 +1,47 @@
+<html>
+<title>Robot Freeze Tag</title>
+<body>
+	<applet code=RobotFTApplet.class ARCHIVE="org.jar" width="840" height="650">
+    Your browser does not support the applet tag.
+    </applet> 
+<br>
+This applet allows one to simulate robot freeze tag for any setup of robots. The way robot freeze tag<br>
+works is you start with one robot that's awake (colored green), and some number of sleeping robots (red)<br>
+located throughout the plane. As in the game freeze tag when players are tagged, the robots can't move<br>
+until they are woken up by another robot that touches it. The goal for a given setup is typically to find<br>
+the optimum schedule for which robot wakes up which such that all robots wake up in the shortest time<br>
+possible. This is discussed further in <a href="http://maven.smith.edu/~orourke/TOPP/P35.html#Problem.35">
+http://maven.smith.edu/~orourke/TOPP/P35.html#Problem.35A</a>,<br> and <a href="http://arxiv.org/abs/cs.DS/0402045">
+http://arxiv.org/abs/cs.DS/0402045</a> (the latter is the paper proving this problem to be NP-complete).<p>
+
+In this applet you click the mouse on the canvas to place robots, and a schedule will be maintained<br>
+automatically as you do this, which is just a complete binary tree in which the order you place the nodes<br>
+is the level order for the tree. Once you have some robots placed, you can press start to watch them wake up.<br>
+Reset allows you to return to your original configuration of robots after watching them wake up, and you can<br>
+try different schedules to compare the total times elapsed to wake up.<p>
+A few distinct algorithms are provided to try and find good schedules. The greedy algorithms create<br>
+the schedule by starting with the root and essentially picking the closest robots as the next ones to be<br>
+woken up. Version 1 only considers the already woken up robot that has travelled the least distance and <br>
+gives that robot its two children by finding the two closest, whereas version two considers all robots<br>
+that can still have children and finds the unclaimed robot closest to any child-able robot to add to the<br>
+schedule. Both are reasonably fast, although beyond <i>n</i> = 1000 version 2 starts to take quite a long time<p>
+Finally, optimal considers all <i>n</i>! permutations of the schedule for robots and takes <br>
+an untractably long time for <i>n</i> > 10 or so. (10 takes about 10 seconds, so 11 takes about 11*10 seconds<br>
+= 2 minute, etc.) Note that optimal is not truly optimal yet, as the topological structure of the tree is<br>
+always kept as close to complete as possible, so really it'll be even more than <i>n</i>! permutations,<br>
+when all the tree structures are considered.<p>
+Areas that I think could use updating:<br>
+Reset button should keep the previous schedule; right now greedy algorithms lose it after running.<br>
+Optimal algorithm should actually be optimal.<br>
+Having some preset configurations of robots could be interesting.
+
+</body>
+
+
+</html> of robots could be interesting.<br>
+Some kind of easy to use manual rescheduling (right now manual does nothing).
+
+</body>
+
+
+</html>

@@ -1,0 +1,71 @@
+<html>
+
+<title>Fluid Simulation</title>
+<body>
+	<applet code=FluidsApplet.class ARCHIVE="org.jar" width="1200" height="800">
+    Your browser does not support the applet tag.
+    </applet> 
+</body>
+<H2>Fluid simulator: </H2>
+This is an interactive fluid simulator I wrote as a Java applet. (I apologize that it's not a "signed" applet so you may have to modify your Java settings to run it.)<br>
+ Choose a "click action" and start clicking and dragging in the screen to push the fluid, color it, add solid boundaries, or add fluid cells. <br>
+The easiest way to get started is to choose from various preset scenarios highlighting different examples of flows. There are free-surface flows in which liquids 
+splash around the screen according to gravity, and there are single-phase flows in which the entire domain is one fluid (with some solid boundaries). <p>
+The Rayleigh-Taylor instability and Rayleigh-Benard convection are flows driven by density differences. For Rayleigh-Taylor, density is determined by cell "color",
+ with darker colors being heavier. With Rayleigh-Benard convection, a temperature field determines density and the fluid is heated from below. Coloring the fluid 
+ and placing color sources can lead to interesting Rayleigh-Taylor "fingers" when the cell color determines its density. <p>
+ For the free surface flows, you can click and drag with the click action set to "Place fluid" to launch balls of liquid, or you can place fluid sources to continuously add liquid at a chosen point (see "Filling glass" for an example of this).
+ <p>
+ You can get a higher-resolution simulation by reducing the grid element width and clicking restart. With the finest resolution (width of 1 pixel), I made videos like <a href="https://www.youtube.com/watch?v=go0V2aGYF_k">this</a> 
+and <a href="https://www.youtube.com/watch?v=EVs7VXQdeyg">this</a>.
+<br>
+<H2>Other Controls:	</H2>
+		<p>		
+		<TABLE Border=2 CELLPADDING=3>
+		<TR> <TH>Right arrow/Left arrow: </TH>  <TD>	Increase/decrease the tracer particle size </TD>  </TR>
+		</TABLE>	
+<br>
+<H3>Known issues: </H3>
+Periodic boundary conditions aren't quite right (sometimes color isn't advected across boundary).<br>
+Color of liquid moving through air is tainted by initial color given to air. (Could have tracers carry cell color)
+<H3>To do:</H3>
+Optimize code (gets slow for free surface scenarios when liquid fills up most of screen)<br>
+Get inflow boundary conditions to work (disabled because it usually makes simulation diverge as of now)<br>
+<H3>Possible extensions:</H3>
+Add viscosity<br>
+Allow for moving solids / curved solids (change geometry of grid entirely, no longer just fluid, air or solid)<br>
+Use level set/VOF methods for smoother liquid-air interface (and surface tension) 
+
+<H3>A brief technical description: </H3>
+
+I coded this solver by referring to the SIGGRAPH 2007 Fluid Simulation course notes by Robert Bridson, which can be found at 
+<a href="http://www.cs.ubc.ca/~rbridson/fluidsimulation/fluids_notes.pdf">http://www.cs.ubc.ca/~rbridson/fluidsimulation/fluids_notes.pdf</a>.
+ I also highly recommend his book <a href="http://www.amazon.com/Simulation-Computer-Graphics-Robert-Bridson/dp/1568813260">Fluid Simulation for Computer Graphics</a>.
+<p>
+
+The solution is discretized using the marker-and-cell (MAC) method [Harlow and Welch, 1965], or a staggered grid. Velocity components are stored at cell faces 
+(horizontal velocity at the left and right faces, vertical velocity at the top and bottom faces), and pressure and any other quantities (temperature, components of color) are
+ stored at cell centers.
+<p>
+Euler's equations (no viscosity is included currently) are solved by splitting them into advection, application of body forces, and projection. Advection uses the current velocity field 
+to propagate all quantities forward in time, the body force step accelerates fluid cells according to gravity, and projection solves for the pressure that enforces incompressibility of 
+the velocity field.
+<p>
+The advection algorithm is semi-Lagrangian, finding the value at a given point by imagining a particle that ends up there, tracing it backward one time step, and interpolating to get the value at 
+the previous position [Stam 1999].
+<p>
+Body forces are straightforward increments to velocities.
+<p>
+The Poisson equation for pressure is discretized and solved with the conjugate gradient algorithm, using a modified incomplete Cholesky preconditioner.
+<p>
+For the free surface scenarios, marker particles keep track of where the liquid is and are passively advected. When a cell has no marker particles, it is marked as air.
+<p>
+See the notes or book for a more complete description of the algorithms used.
+<p> 
+Questions or comments? Feel free to email me at cfbrasz (at) gmail (dot) com. <p>
+Last updated 2/4/14
+
+<p>
+<a href="http://cfb.qqnoobs.com/">Home</a>
+
+</html>

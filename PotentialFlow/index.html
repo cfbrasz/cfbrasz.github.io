@@ -1,0 +1,23 @@
+<html>
+
+<title>Potential Flows Simulation</title>
+<body>
+	<applet code=FluidsApplet.class ARCHIVE="org.jar" width="700" height="300">
+    Your browser does not support the applet tag.
+    </applet> 
+</body>
+<br>
+This applet simulates potential flows, either by solving for the potential using boundary conditions and iteratively solving Laplace's equation <br>
+(for vertical wall, diagonal wall, square, and diamond) or by the superposition of elementary potential flows<br>
+into known configurations (for circle, half-plane, and rankine oval). <p>
+In theory, potential flows about arbitrary shapes should be able to be simulated by imposing boundary conditions,<br>
+but getting curved surfaces working is a bit tricky. <p>
+Note that only the boundary condition flows use iterations, so changing the number won't affect the superpositions of elementary flows.
+<br>
+Also, equipotentials aren't functional yet, and the stream function is only shown for the superpositions of elementary flows.
+<p>
+Last updated 6/24/09
+<p>
+<a href="http://cfb.qqnoobs.com/">Home</a>
+
+</html>

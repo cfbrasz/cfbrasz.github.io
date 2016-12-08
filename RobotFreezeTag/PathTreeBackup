@@ -1,0 +1,131 @@
+
+import java.awt.*;
+
+public class PathTree {
+
+	Coord c;
+	PathTree left;
+	PathTree right;
+	PathTree parent;
+	boolean hasLeft = false;
+	boolean hasRight = false;
+
+	public PathTree()
+	{
+	c = null;
+	parent = null;
+	left = this;
+	right = this;
+	}
+	
+	public PathTree(Coord c)
+	{
+	this.c = c;
+	parent = null;
+	//left = null;
+	//right = null;
+	right = new PathTree();
+	left = new PathTree();
+	setLeft(left);	
+	setRight(right);
+
+	}
+	
+	public PathTree(Coord c, PathTree parent)
+	{
+	this.c = c;
+	this.parent = parent;
+	if(parent.left().equals(new PathTree())) 
+	//if(parent.left().getValue() != null) 
+	 {
+	 parent.setLeft(this);
+	 }
+	else if (parent.right().equals(new PathTree())) parent.setRight(this);
+	else System.out.println("Error, already has two children");
+	
+	right = new PathTree();
+	left = new PathTree();
+	//setLeft(left);
+	//setRight(right);
+	}
+	
+	public Coord getValue()
+	{
+	return c;
+	}
+	
+	public void setLeft(PathTree pt)
+	{
+	//if(left != null) left.setParent(null);
+	this.left = pt;
+	left.setParent(this);
+	//timer(1000);
+	}
+	
+	public void setRight(PathTree pt)
+	{
+	//if(left != null) left.setParent(null);
+	this.right = pt;
+	right.setParent(this);
+	}
+	
+	public PathTree left()
+	{
+	return left;
+	}
+	
+	public PathTree right()
+	{
+	return right;
+	}
+	
+	public void setParent(PathTree pt)
+	{
+	//if(left != null) left.setParent(null);
+	this.parent = pt;
+	//timer(1000);
+	//System.out.println(pt.left().getValue());
+	//System.out.println(pt.left().getValue() == null);
+	//pt.setLeft(this);
+	//if(pt.left().getValue() == null) pt.setLeft(this);
+	//else if (pt.right().getValue() == null) pt.setRight(this);
+	//else if (pt.right().equals(new PathTree())) pt.setRight(this);
+	//else System.out.println("Error, already has two children");
+	}
+	
+	public void paint(Graphics g)
+	{	
+	g.setColor(new Color(200,200,200));	
+	if(left.getValue() != null) g.drawLine((int)c.getX(),(int)c.getY(),(int)left.getValue().getX(),(int)left.getValue().getY());	
+	if(right.getValue() != null) g.drawLine((int)c.getX(),(int)c.getY(),(int)right.getValue().getX(),(int)right.getValue().getY());						
+	}
+	
+	public boolean equals(Object o)
+	{
+	PathTree pt = (PathTree)o;
+	if(c!=null && pt.getValue()!=null) return c.equals(pt.getValue());
+	else return c==null && pt.getValue() == null;
+	}
+	
+	public String toString()
+	{
+	return "PathTree with Coord at " + c + " and children at " + left.getValue() + " and " + right.getValue();
+	}
+	
+	public static void main(String args[])
+	{
+	PathTree p1 = new PathTree();
+	PathTree p2 = new PathTree(new Coord(1,1));
+	PathTree p3 = new PathTree(new Coord(10,10),p2);
+	
+	System.out.println(p1);
+	
+	System.out.println(p2);
+	System.out.println(p3.left() == null);
+	//System.out.println(p3);
+	//System.out.println(p2.equals(p3));
+	//System.out.println(p1.getValue() != null);
+	}
+	
+	
+}

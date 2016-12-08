@@ -1,0 +1,236 @@
+<html>
+<div class="content">
+
+  <head>
+    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"> 
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+      /* div.content { width: 320px } */
+    </style>
+  </head>
+
+<title>N-body simulator</title>
+
+<body>
+  <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
+  <canvas id="myCanvas" ></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+    function ball(x0, y0, u0, v0) {
+      this.x = x0;
+      this.y = y0;
+      this.u = u0;
+      this.v = v0;
+      this.mass = startingMass;
+      this.radius = startingRadius;
+      var linewidth = 1;
+      var nScreenBuffer = 1;
+      this.fillStyle = 'red'
+      this.strokeStyle = 'white'
+      
+      this.advance = function(dt) {
+        // Advance in time dt
+        this.x += this.u*dt
+        this.y += this.v*dt
+        
+        // Remove balls that move off screen (give nScreenBuffer*width of a buffer)
+        
+        if(this.x > canvas.width*(nScreenBuffer+1) + this.radius || this.y > canvas.height*(nScreenBuffer+1) + this.radius
+        || this.x < -canvas.width*nScreenBuffer-this.radius || this.y < -canvas.height*nScreenBuffer-this.radius) {          
+          var j = planets.indexOf(this);
+          planets.splice(j,1);
+        }
+        
+      }
+      
+      this.resolveForce = function(ball2, forceType) {
+        if(forceType == "gravitational") {
+          var dx = this.x - ball2.x;
+          var dy = this.y - ball2.y;
+          var r2 = dx*dx + dy*dy;
+          var minR2 = (this.radius + ball2.radius)*(this.radius + ball2.radius);
+          console.log("r2, minR2 = " + r2 + ", " + minR2);
+          if(r2 > minR2) {
+            var r3 = Math.pow(r2,1.5);
+            var F = -G*this.mass*ball2.mass/r3;
+            this.u += dx*F/this.mass;
+            ball2.u -= dx*F/ball2.mass;
+            this.v += dy*F/this.mass;
+            ball2.v -= dy*F/ball2.mass;
+          } else {
+            collidePlanets.push([this, ball2]);
+          }          
+        } else if(forceType == "electrostatic") {
+          // TODO: this
+        }
+      }
+      
+      this.collide = function(ball2) {
+        var newMass = this.mass + ball2.mass;
+        this.u = (this.u*this.mass + ball2.u*ball2.mass)/newMass;
+        this.v = (this.v*this.mass + ball2.v*ball2.mass)/newMass;
+        this.x = (this.x*this.mass + ball2.x*ball2.mass)/newMass;
+        this.y = (this.y*this.mass + ball2.y*ball2.mass)/newMass;
+        this.radius = startingRadius*Math.pow(newMass,1./3.)
+        this.mass = newMass;
+      }
+      
+      this.draw = function(context) {        
+        context.beginPath();
+        context.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, false);
+        context.fillStyle = this.fillStyle;
+        context.fill();
+        context.lineWidth = linewidth;
+        context.strokeStyle = this.strokeStyle;
+        context.stroke();
+      }
+    }
+    
+    function animate(planets, canvas, context, previousTime) {
+      // update
+      var currentTime = (new Date()).getTime()
+      var dtms = currentTime - previousTime;
+      var dt = dtms/1000.; // convert from ms to s so speeds is px/sec      
+      // clear
+      context.clearRect(0, 0, canvas.width, canvas.height);      
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 50;
+        
+      context.rect(0, 0, canvas.width, canvas.height);
+      context.fillStyle = 'black';
+      context.fill();
+
+      nPlanets = planets.length;
+      for(var i=0; i<nPlanets-1; i++) {
+        planet = planets[i];
+        for(var j=i+1; j<nPlanets; j++) {
+          planetJ = planets[j];
+          planet.resolveForce(planetJ, forceType);
+          
+          if(isNaN(planetJ.u)) {
+            console.log(i);
+            console.log(j);
+            console.log(planet);
+            console.log(planetJ);
+            throw { 
+    name:        "System Error", 
+    level:       "Show Stopper", 
+    message:     "Error detected. Please contact the system administrator.", 
+    htmlMessage: "Error detected. Please contact the <a href=\"mailto:sysadmin@acme-widgets.com\">system administrator</a>.",
+    toString:    function(){return this.name + ": " + this.message} }
+          }
+          
+        }
+      }
+      
+      while(collidePlanets.length > 0) {
+        cp = collidePlanets.pop();
+        pi = cp[0];
+        pj = cp[1];
+        pi.collide(pj);
+        var j = planets.indexOf(pj);
+        planets.splice(j,1);
+      }
+      
+      
+      //if(planets.length > 0) console.log(planets[0].u);
+      
+      for(var i=0; i<planets.length; i++) {
+        planet = planets[i];
+        planet.advance(dt);
+        planet.draw(context);
+      }
+
+      // request new frame
+      requestAnimFrame(function() {
+        animate(planets, canvas, context, currentTime);
+      });
+    }
+          
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    
+    var startX = 0;
+    var startY = 0;
+    var velocityScale = 3.; // drag 100 pixels and velocity will be 300 pixel/sec
+    var G = Math.pow(30,3); // pixels^3/(mass*sec^2)
+    var forceType = "gravitational";
+    var collidePlanets = [];
+    var startingRadius = 6.;
+    var startingMass = 1.;
+    //var startingMass = 0.1;
+    
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    canvas.addEventListener('touchstart',touchStart,false);
+    canvas.addEventListener('touchend',touchEnd,false);
+    
+    var planets = [];
+    sun = new ball(canvas.width/2, canvas.height/2, 0, 0);
+    sun.mass = 1.;
+    sun.fillStyle = 'yellow';
+    //planets.push(sun);
+    
+    var startTime = (new Date()).getTime();
+    animate(planets, canvas, context, startTime);
+    
+    function mousePressed (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+    
+    function touchStart (e) {
+      startX = e.changedTouches[0].pageX;
+      startY = e.changedTouches[0].pageY;
+    }
+    
+    function mouseReleased (e) {
+      makePlanet(e.x, e.y);
+    }
+    
+    function touchEnd (e) {
+      makePlanet(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
+    }
+    
+    function makePlanet(x,y) {
+      u = velocityScale*(x - startX);
+      v = velocityScale*(y - startY);
+      planet = new ball(startX, startY, u, v);
+      //setTimeout(function() { planets.push(planet);}, 1000);
+      planets.push(planet);
+    }
+    
+        
+    context.beginPath();
+    context.strokeStyle = 'white';
+    //context.moveTo(100, 150);
+      
+  </script>
+
+
+</body>
+
+<p>
+Fling stars and watch them interact.
+<!--
+Click and drag (or touch and drag) to fling stars around that attract each other gravitationally. When they collide they form a larger star.
+
+<p>
+Questions or comments? Feel free to email me at cfbrasz (at) gmail (dot) com. <p>
+Last updated 9/1/14
+
+<p>
+<a href="http://cfb.qqnoobs.com/">Home</a>
+-->
+</div>
+</html>

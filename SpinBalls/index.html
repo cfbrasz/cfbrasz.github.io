@@ -1,0 +1,41 @@
+<html>
+
+	<title>Collisions with spin</title>
+
+<body>
+	<applet code=SpinBallApplet.class ARCHIVE="org.jar" width="800" height="600">
+    Your browser does not support the applet tag.
+    </applet> 
+	<br>
+	Click the mouse to create a ball at a point on the screen.<br>
+	Drag the mouse before letting go to give it an initial velocity in that direction with a magnitude corresponding to how far you drag the mouse. <br>
+	This is still pretty buggy and not fully functional, but it can have show some interesting and realistic effects of spin on how balls bounce.
+	<H2>Controls:	</H2>
+		<p>		
+		<TABLE Border=2 CELLPADDING=3>
+		<TR> <TH>W</TH>  <TD> 	Move paddle up </TD>  </TR>
+		<TR> <TH>A </TH>  <TD>	Move paddle down </TD>  </TR>
+		<TR> <TH>S </TH>  <TD>	Move paddle left </TD>  </TR>
+		<TR> <TH>D </TH>  <TD>	Move paddle right</TD>  </TR>
+		<TR> <TH>Q </TH>  <TD>	Rotate paddle counterclockwise </TD>  </TR>
+		<TR> <TH>E</TH>  <TD>	Rotate paddle clockwise  </TD>  </TR>
+		</TABLE>		
+		<p>
+		<b>Things to fix/finish in this simulation:</b><br>
+		Activate the slider for the curvature of a ball's trajectory from spin (the slider does nothing right now). <br>
+		Account for friction between ball and paddle.<br>
+		Account for friction between balls.<br>
+		Fix preset scenarios (they're mostly for debugging right now). <br>
+		Change collision response so scenario like "Many balls" looks right (probably to velocity-level, impulse based approach).<br>
+		Change collision response of balls with paddle as well (crazy stuff happens currently). <br>
+		Account for rotation of paddle in paddle-ball collisions (right now just linear velocity taken into account). <br>
+		Account for varying radii when handling collision response (right now all treated as equal mass objects). <br>
+		Possibly add mouse control of paddle.<br>
+		And eventually, if the physics look good, I may make a little 2D ping pong game with gravity and spin using two paddles. <br>
+		<p>
+		Questions, comments, or suggestions? Email me at cfbrasz@gmail.com
+		<p>
+		Last updated 9/3/09.
+</body>
+
+</html>

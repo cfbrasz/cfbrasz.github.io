@@ -1,0 +1,2020 @@
+import java.awt.Color;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.net.URL;
+import java.util.LinkedList;
+import java.util.Vector;
+
+import javax.swing.JApplet;
+import javax.swing.JColorChooser;
+import javax.swing.JFrame;
+import javax.swing.JSlider;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+
+public class FluidsApplet extends JApplet implements ChangeListener,Runnable {
+
+	/**
+   * 
+   */
+  private static final long serialVersionUID = 1L;
+  FluidsCanvas canvas1;
+	private ColorCanvas colorCanvas;
+  private CurrentColorCanvas currentColorCanvas;
+	int maxBW = 800;
+	int vMax = 25;
+	public static int boardWidth = 800;
+	public static int boardHeight = 400;
+	int res = 4; // Megapixel width
+	int startingRes = 4; // Megapixel width
+	int startingPreset = 13;//11 is test //13 is projectile //2 is lid const vel
+	//int startingPreset = 8; //8 is water on side
+	int tMax = 25*res;
+	//private int nIters = 3000;
+	//private int nAtATime = 10;
+	//private int waitTime = 10;
+	private Thread animatorThread;
+	private double[] vAvgDevArray;
+	FluidSolver fs;
+	
+	static URL cb; // code base for image loading
+	
+	static boolean applicationForm = false;
+	static boolean saveImages = false;
+	
+	//private double dt = 1;
+	//int stepsPerFrame = 1;
+
+	//TODO: make this adjustable
+	private double dt = 0.2; // 0.6
+	int stepsPerFrame = 1;
+	
+	//private double dt = 0.05;
+	//int stepsPerFrame = 8;
+	
+	//private double dt = 0.01;
+	//int stepsPerFrame = 4;
+	
+	private int iters = 3; //updates of tracer position
+	//private int iters = 20;
+	//private int pauseTime = 5;//30//10;//100;//1000;
+	private int pauseTime = 10;//10;//100;//1000;
+	private boolean reset = true;
+	boolean paused = false;
+	private boolean loadPreset = false;
+	private String preset;
+	private double pushScale = 10;
+  private double jetScale = 0.1;
+	boolean tracerAction = false;
+	//private int pauseTime = 1000;
+	Stopwatch sw = new Stopwatch();
+	boolean useSW = false;
+	
+	LinkedList<int[]> solidifyQueue = new LinkedList<int[]>();
+	LinkedList<int[]> fluidifyQueue = new LinkedList<int[]>();
+  LinkedList<int[]> placeFluidQueue = new LinkedList<int[]>();
+  LinkedList<int[]> removeFluidQueue = new LinkedList<int[]>();
+	LinkedList<int[]> pushes = new LinkedList<int[]>();
+	Vector<int[]> jets = new Vector<int[]>();
+	Vector<Integer> jetDiameters = new Vector<Integer>();
+
+	//Make public pauseToggleButton, tracerCheckBox, and verticalWallCheckBox
+
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.ButtonGroup BCButtonGroup;
+    private javax.swing.JRadioButton addMarkedParticleRadioButton;
+    private javax.swing.JLabel bLabel;
+    private javax.swing.JMenu bcMenu;
+    private javax.swing.JLabel bkLabel;
+    private javax.swing.JTextField boardWidthTextField;
+    private javax.swing.ButtonGroup clickActionButtonGroup;
+    private javax.swing.JSlider clickEffectSizeSlider;
+    private javax.swing.JRadioButtonMenuItem cmRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem cmyRadioButtonMenuItem;
+    private javax.swing.JRadioButton colorButton;
+    private javax.swing.ButtonGroup colorButtonGroup;
+    private javax.swing.JButton colorChooserButton;
+    javax.swing.JCheckBoxMenuItem colorDensityCheckBoxMenuItem;
+    private javax.swing.JSlider colorDiffusionSlider;
+    private javax.swing.JRadioButton colorFluidRadioButton;
+    private javax.swing.JSlider colorRangeSlider;
+    private javax.swing.JMenu colorSubMenu;
+    private javax.swing.ButtonGroup colorVaryButtonGroup;
+    private javax.swing.JMenu colorVarySubMenu;
+    private javax.swing.JRadioButtonMenuItem colorVaryXRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem colorVaryYRadioButtonMenuItem;
+    private javax.swing.JSlider colorWeightSlider;
+    private javax.swing.JRadioButtonMenuItem constantInflowBCRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem continuousRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem damBreakRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem diagonalLidsBCRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem enclosedRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem fallingWater2RadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem fallingWaterRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem fillingGlassRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem fourWayPeriodicRadioButtonMenuItem;
+    private javax.swing.JMenu freeSurfaceSubMenu;
+    private javax.swing.JLabel gLabel;
+    private javax.swing.JButton getWallArraysButton;
+    private javax.swing.JTextField getWallsTextField;
+    private javax.swing.JRadioButtonMenuItem gravityCurrentRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem heatedBottomRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem heatedLeftWallRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem heatedRightWallRadioButtonMenuItem;
+    private javax.swing.JCheckBox highResCheckBox;
+    private javax.swing.JMenu initialConditionsMenu;
+    private javax.swing.ButtonGroup initialScenarioButtonGroup;
+    private javax.swing.JCheckBox interpolationOrderCheckBox;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel17;
+    private javax.swing.JLabel jLabel19;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.JMenuBar jMenuBar1;
+    private javax.swing.JPopupMenu.Separator jSeparator1;
+    private javax.swing.JPopupMenu.Separator jSeparator2;
+    private javax.swing.JPopupMenu.Separator jSeparator3;
+    private javax.swing.JRadioButtonMenuItem johanRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem leftRightPeriodicRadioButtonMenuItem;
+    private javax.swing.JSlider lidVelocitySlider;
+    private javax.swing.JMenu lidsSubMenu;
+    private javax.swing.JRadioButtonMenuItem meanderingRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem myRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem nebulaRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem noObstaclesRadioButtonMenuItem;
+    private javax.swing.ButtonGroup obstaclesButtonGroup;
+    private javax.swing.JMenu obstaclesSubMenu;
+    private javax.swing.JRadioButtonMenuItem oppositeLidsBCRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem oppositeLidsOppDirsBCRadioButtonMenuItem;
+    javax.swing.JToggleButton pauseToggleButton;
+    private javax.swing.JMenu periodicSubMenu;
+    private javax.swing.JRadioButton placeColorSourceRadioButton;
+    private javax.swing.JRadioButton placeFluidRadioButton;
+    private javax.swing.JRadioButton placeJetRadioButton;
+    private javax.swing.JRadioButton placeWallRadioButton;
+    private javax.swing.JRadioButtonMenuItem pointSourceRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem porousRadioButtonMenuItem;
+    private javax.swing.JRadioButton pressureButton;
+    private javax.swing.JRadioButtonMenuItem projectileRadioButtonMenuItem;
+    private javax.swing.JRadioButton pushFluidRadioButton;
+    private javax.swing.JLabel rLabel;
+    private javax.swing.JButton removeColorSourcesButton;
+    private javax.swing.JRadioButton removeFluidRadioButton;
+    private javax.swing.JButton removeJetsButton;
+    private javax.swing.JRadioButton removeWallRadioButton;
+    private javax.swing.JButton removeWallsButton;
+    private javax.swing.JTextField resTextField;
+    private javax.swing.JButton restartButton;
+    private javax.swing.JRadioButtonMenuItem rgbRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem ripplesRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem rygcbRadioButtonMenuItem;
+    private javax.swing.JMenu singleFluidSubMenu;
+    private javax.swing.JRadioButtonMenuItem squareObstacleRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem stationaryRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem stillWaterRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem sunsetRadioButtonMenuItem;
+    private javax.swing.ButtonGroup tempBCButtonGroup;
+    private javax.swing.JMenu tempBCSubMenu;
+    private javax.swing.JSlider tempMagnitudeSlider;
+    private javax.swing.JRadioButton temperatureButton;
+    private javax.swing.JRadioButtonMenuItem topLidBCRadioButtonMenuItem;
+    javax.swing.JCheckBox tracerCheckBox;
+    javax.swing.JSlider tracerDensitySlider;
+    private javax.swing.JRadioButtonMenuItem triangleRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem triforceRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem uniformTempRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem upDownPeriodicRadioButtonMenuItem;
+    private javax.swing.JRadioButton velocityButton;
+    private javax.swing.JCheckBox velocityVectorCheckBox;
+    private javax.swing.JSlider velocityVectorDensitySlider;
+    private javax.swing.JRadioButton velocityXButton;
+    private javax.swing.JRadioButton velocityYButton;
+    private javax.swing.ButtonGroup viewButtonGroup;
+    private javax.swing.JCheckBox viscosityCheckBox;
+    private javax.swing.JRadioButtonMenuItem vortexRadioButtonMenuItem;
+    private javax.swing.JRadioButton vorticityButton;
+    private javax.swing.JLabel wLabel;
+    private javax.swing.JRadioButtonMenuItem ybRadioButtonMenuItem;
+    private javax.swing.JRadioButtonMenuItem ycRadioButtonMenuItem;
+    // End of variables declaration//GEN-END:variables
+	
+	org.jdesktop.layout.GroupLayout layout;
+  //private int startingInitialColor = 8;
+  // RGB, RYGCB, CMY, YB, YC, CM, MY, Gravity Current, Continuous
+  public int nonImageInitialColors = 7;
+  
+  @SuppressWarnings("deprecation")
+  static public void main (String argv[]) {
+    applicationForm = true;
+    final JApplet applet = new FluidsApplet();
+    System.runFinalizersOnExit(true);
+    JFrame frame = new JFrame (
+                 "MyApplet");
+    frame.addWindowListener (
+                  new WindowAdapter()
+    {
+      public void windowClosing (
+                   WindowEvent event)
+      {
+        applet.stop();
+        applet.destroy();
+        System.exit(0);
+      }
+    });
+    frame.add (
+      "Center", applet);
+    applet.setStub (new MyAppletStub (
+         argv, applet));
+    frame.show();
+    applet.init();
+    applet.start();
+    frame.pack();
+    frame.setSize(1150, 800);
+  }
+	
+	public void init()
+	{	
+	System.out.println("Initializing...");	
+	
+	cb = getCodeBase();
+	
+	fs = new FluidSolver(boardWidth,boardHeight,this);
+	canvas1 = new FluidsCanvas(boardWidth,boardHeight,this,fs);
+	colorCanvas = new ColorCanvas(20,112);
+  currentColorCanvas = new CurrentColorCanvas(37,37);
+  currentColorCanvas.currentColor = canvas1.currentColor;
+	initComponents();
+	setLayout(layout);
+	
+    canvas1.requestFocusInWindow();
+	
+	if (animatorThread == null) {
+            animatorThread = new Thread(this);
+        }
+        animatorThread.start();
+	
+        /*
+    JMenuBar menubar = new JMenuBar();
+  
+    JMenu menuFile = new JMenu("File");
+  
+    JMenuItem openItem = new JMenuItem("Open");
+    menuFile.add(openItem);
+  
+    JMenuItem saveItem = new JMenuItem("Save");
+    menuFile.add(saveItem);
+  
+    menubar.add(menuFile);
+  
+    JMenu menuHelp = new JMenu("Help");
+  
+    JMenuItem aboutItem = new JMenuItem("About");
+    menuHelp.add(aboutItem);
+  
+    menubar.add(menuHelp);
+  
+    setJMenuBar(menubar);   */
+    setJMenuBar(jMenuBar1);   
+	}
+	
+	private void addPresets() {
+	  singleFluidSubMenu.setText("Single fluid initial scenarios");
+
+    initialScenarioButtonGroup.add(stationaryRadioButtonMenuItem);
+    stationaryRadioButtonMenuItem.setText("Stationary");
+    singleFluidSubMenu.add(stationaryRadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(vortexRadioButtonMenuItem);
+    vortexRadioButtonMenuItem.setText("Transient vortex");
+    singleFluidSubMenu.add(vortexRadioButtonMenuItem);
+
+    initialConditionsMenu.add(singleFluidSubMenu);
+
+    freeSurfaceSubMenu.setText("Free surface initial scenarios");
+
+    initialScenarioButtonGroup.add(damBreakRadioButtonMenuItem);
+    damBreakRadioButtonMenuItem.setText("Dam break");
+    freeSurfaceSubMenu.add(damBreakRadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(fallingWaterRadioButtonMenuItem);
+    fallingWaterRadioButtonMenuItem.setText("Falling water");
+    freeSurfaceSubMenu.add(fallingWaterRadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(fallingWater2RadioButtonMenuItem);
+    fallingWater2RadioButtonMenuItem.setText("Falling water 2");
+    freeSurfaceSubMenu.add(fallingWater2RadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(projectileRadioButtonMenuItem);
+    projectileRadioButtonMenuItem.setSelected(true);
+    projectileRadioButtonMenuItem.setText("Projectile");
+    freeSurfaceSubMenu.add(projectileRadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(stillWaterRadioButtonMenuItem);
+    stillWaterRadioButtonMenuItem.setText("Still water");
+    freeSurfaceSubMenu.add(stillWaterRadioButtonMenuItem);
+
+    initialScenarioButtonGroup.add(fillingGlassRadioButtonMenuItem);
+    fillingGlassRadioButtonMenuItem.setText("Filling glass");
+    freeSurfaceSubMenu.add(fillingGlassRadioButtonMenuItem);
+
+    initialConditionsMenu.add(freeSurfaceSubMenu);
+    
+    java.awt.event.ActionListener presetListener = new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        preset = evt.getActionCommand();
+        loadPreset = true;
+        canvas1.requestFocusInWindow(); 
+      }
+    };
+    
+    projectileRadioButtonMenuItem.addActionListener(presetListener);
+    triangleRadioButtonMenuItem.addActionListener(presetListener);
+    fillingGlassRadioButtonMenuItem.addActionListener(presetListener);
+    stillWaterRadioButtonMenuItem.addActionListener(presetListener);
+    fallingWaterRadioButtonMenuItem.addActionListener(presetListener);
+    fallingWater2RadioButtonMenuItem.addActionListener(presetListener);
+    damBreakRadioButtonMenuItem.addActionListener(presetListener);
+    vortexRadioButtonMenuItem.addActionListener(presetListener);
+    stationaryRadioButtonMenuItem.addActionListener(presetListener);
+	}
+	
+  private void addInitColors() {
+    colorSubMenu.setText("Initial color placement");
+
+    colorButtonGroup.add(rgbRadioButtonMenuItem);
+    rgbRadioButtonMenuItem.setText("RGB");
+    colorSubMenu.add(rgbRadioButtonMenuItem);
+
+    colorButtonGroup.add(rygcbRadioButtonMenuItem);
+    rygcbRadioButtonMenuItem.setText("RYGCB");
+    colorSubMenu.add(rygcbRadioButtonMenuItem);
+
+    colorButtonGroup.add(cmyRadioButtonMenuItem);
+    cmyRadioButtonMenuItem.setText("CMY");
+    colorSubMenu.add(cmyRadioButtonMenuItem);
+
+    colorButtonGroup.add(ybRadioButtonMenuItem);
+    ybRadioButtonMenuItem.setText("YB");
+    colorSubMenu.add(ybRadioButtonMenuItem);
+
+    colorButtonGroup.add(ycRadioButtonMenuItem);
+    ycRadioButtonMenuItem.setText("YC");
+    colorSubMenu.add(ycRadioButtonMenuItem);
+
+    colorButtonGroup.add(cmRadioButtonMenuItem);
+    cmRadioButtonMenuItem.setText("CM");
+    colorSubMenu.add(cmRadioButtonMenuItem);
+
+    colorButtonGroup.add(myRadioButtonMenuItem);
+    myRadioButtonMenuItem.setText("MY");
+    colorSubMenu.add(myRadioButtonMenuItem);
+
+    colorButtonGroup.add(continuousRadioButtonMenuItem);
+    continuousRadioButtonMenuItem.setSelected(true);
+    continuousRadioButtonMenuItem.setText("Continuous");
+    colorSubMenu.add(continuousRadioButtonMenuItem);
+
+    colorButtonGroup.add(gravityCurrentRadioButtonMenuItem);
+    gravityCurrentRadioButtonMenuItem.setText("Gravity current");
+    colorSubMenu.add(gravityCurrentRadioButtonMenuItem);    
+
+    colorButtonGroup.add(sunsetRadioButtonMenuItem);
+    sunsetRadioButtonMenuItem.setText("Sunset");
+    colorSubMenu.add(sunsetRadioButtonMenuItem);
+
+    colorButtonGroup.add(ripplesRadioButtonMenuItem);
+    ripplesRadioButtonMenuItem.setText("Ripples");
+    colorSubMenu.add(ripplesRadioButtonMenuItem);
+
+    colorButtonGroup.add(nebulaRadioButtonMenuItem);
+    nebulaRadioButtonMenuItem.setText("Nebula");
+    colorSubMenu.add(nebulaRadioButtonMenuItem);
+
+    colorButtonGroup.add(johanRadioButtonMenuItem);
+    johanRadioButtonMenuItem.setText("Johan");
+    colorSubMenu.add(johanRadioButtonMenuItem);
+
+    colorButtonGroup.add(triforceRadioButtonMenuItem);
+    triforceRadioButtonMenuItem.setText("Triforce");
+    colorSubMenu.add(triforceRadioButtonMenuItem);
+
+    initialConditionsMenu.add(colorSubMenu);
+    
+    colorVarySubMenu.setText("For RGB - Continuous, vary colors along...");
+
+    colorVaryButtonGroup.add(colorVaryXRadioButtonMenuItem);
+    colorVaryXRadioButtonMenuItem.setSelected(true);
+    colorVaryXRadioButtonMenuItem.setText("x-axis");
+    colorVarySubMenu.add(colorVaryXRadioButtonMenuItem);
+
+    colorVaryButtonGroup.add(colorVaryYRadioButtonMenuItem);
+    colorVaryYRadioButtonMenuItem.setText("y-axis");
+    colorVarySubMenu.add(colorVaryYRadioButtonMenuItem);
+
+    initialConditionsMenu.add(colorVarySubMenu);
+    
+    colorDensityCheckBoxMenuItem.setText("Include effect of color on density");
+    initialConditionsMenu.add(colorDensityCheckBoxMenuItem);
+
+    java.awt.event.ActionListener initColorListener = new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        //System.out.println(evt.toString());
+        fs.initialColor = evt.getActionCommand();
+        //System.out.println(fs.initialColor);
+        fs.checkIfImgLoad(fs.initialColor);
+        //canvas1.requestFocusInWindow(); 
+      }
+    };
+    
+    rgbRadioButtonMenuItem.addActionListener(initColorListener);
+    rygcbRadioButtonMenuItem.addActionListener(initColorListener);
+    cmyRadioButtonMenuItem.addActionListener(initColorListener);
+    ybRadioButtonMenuItem.addActionListener(initColorListener);
+    ycRadioButtonMenuItem.addActionListener(initColorListener);
+    cmRadioButtonMenuItem.addActionListener(initColorListener);
+    myRadioButtonMenuItem.addActionListener(initColorListener);
+    gravityCurrentRadioButtonMenuItem.addActionListener(initColorListener);
+    continuousRadioButtonMenuItem.addActionListener(initColorListener);
+    sunsetRadioButtonMenuItem.addActionListener(initColorListener);
+    ripplesRadioButtonMenuItem.addActionListener(initColorListener);
+    nebulaRadioButtonMenuItem.addActionListener(initColorListener);
+    johanRadioButtonMenuItem.addActionListener(initColorListener);
+    triforceRadioButtonMenuItem.addActionListener(initColorListener);
+
+    colorVaryXRadioButtonMenuItem.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            xColorVaryRadioButtonActionPerformed(evt);
+        }
+    });
+
+    colorVaryYRadioButtonMenuItem.addActionListener(new java.awt.event.ActionListener() {
+        public void actionPerformed(java.awt.event.ActionEvent evt) {
+            yColorVaryRadioButtonActionPerformed(evt);
+        }
+    });
+  }
+	
+
+  private void addFlowBCs() {
+    BCButtonGroup.add(enclosedRadioButtonMenuItem);
+    enclosedRadioButtonMenuItem.setSelected(true);
+    enclosedRadioButtonMenuItem.setText("Enclosed, stationary walls");
+    enclosedRadioButtonMenuItem.setActionCommand("ENCLOSED");
+    bcMenu.add(enclosedRadioButtonMenuItem);
+
+    lidsSubMenu.setText("Constant velocity lids");
+
+    BCButtonGroup.add(topLidBCRadioButtonMenuItem);
+    topLidBCRadioButtonMenuItem.setText("Top boundary moving to the right");
+    topLidBCRadioButtonMenuItem.setActionCommand("LID");
+    lidsSubMenu.add(topLidBCRadioButtonMenuItem);
+
+    BCButtonGroup.add(diagonalLidsBCRadioButtonMenuItem);
+    diagonalLidsBCRadioButtonMenuItem.setText("Top boundary moving right, right boundary moving up");
+    diagonalLidsBCRadioButtonMenuItem.setActionCommand("DOUBLELIDDIAG");
+    lidsSubMenu.add(diagonalLidsBCRadioButtonMenuItem);
+
+    BCButtonGroup.add(oppositeLidsBCRadioButtonMenuItem);
+    oppositeLidsBCRadioButtonMenuItem.setText("Top and bottom boundaries moving right");
+    oppositeLidsBCRadioButtonMenuItem.setActionCommand("DOUBLELID");
+    lidsSubMenu.add(oppositeLidsBCRadioButtonMenuItem);
+
+    BCButtonGroup.add(oppositeLidsOppDirsBCRadioButtonMenuItem);
+    oppositeLidsOppDirsBCRadioButtonMenuItem.setText("Top moving right, bottom moving left");
+    oppositeLidsOppDirsBCRadioButtonMenuItem.setActionCommand("DOUBLELIDOPP");
+    lidsSubMenu.add(oppositeLidsOppDirsBCRadioButtonMenuItem);
+
+    bcMenu.add(lidsSubMenu);
+
+    periodicSubMenu.setText("Periodic boundary conditions");
+
+    BCButtonGroup.add(leftRightPeriodicRadioButtonMenuItem);
+    leftRightPeriodicRadioButtonMenuItem.setText("Left-right periodic");
+    leftRightPeriodicRadioButtonMenuItem.setActionCommand("LRPERIODIC");
+    periodicSubMenu.add(leftRightPeriodicRadioButtonMenuItem);
+
+    BCButtonGroup.add(upDownPeriodicRadioButtonMenuItem);
+    upDownPeriodicRadioButtonMenuItem.setText("Up-down periodic");
+    upDownPeriodicRadioButtonMenuItem.setActionCommand("TBPERIODIC");
+    periodicSubMenu.add(upDownPeriodicRadioButtonMenuItem);
+
+    BCButtonGroup.add(fourWayPeriodicRadioButtonMenuItem);
+    fourWayPeriodicRadioButtonMenuItem.setText("Periodic in both directions");
+    fourWayPeriodicRadioButtonMenuItem.setActionCommand("PERIODIC");
+    periodicSubMenu.add(fourWayPeriodicRadioButtonMenuItem);
+
+    bcMenu.add(periodicSubMenu);
+
+    BCButtonGroup.add(constantInflowBCRadioButtonMenuItem);
+    constantInflowBCRadioButtonMenuItem.setText("Constant inflow (left to right)");
+    constantInflowBCRadioButtonMenuItem.setActionCommand("LEFTTORIGHT");
+    bcMenu.add(constantInflowBCRadioButtonMenuItem);  
+
+    java.awt.event.ActionListener bcListener = new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+
+        String bc = evt.getActionCommand();
+        int bcI = 0;
+        fs.xPeriodic = false;
+        fs.yPeriodic = false;
+        if(bc.equals("ENCLOSED")) bcI = Constants.ENCLOSED;
+        else if(bc.equals("LID")) bcI = Constants.LID;
+        else if(bc.equals("DOUBLELID")) bcI = Constants.DOUBLELID;
+        else if(bc.equals("DOUBLELIDDIAG")) bcI = Constants.DOUBLELIDDIAG;
+        else if(bc.equals("DOUBLELIDOPP")) bcI = Constants.DOUBLELIDOPP;
+        else if(bc.equals("LRPERIODIC")) {
+          bcI = Constants.LRPERIODIC;
+          fs.xPeriodic = true;
+        }
+        else if(bc.equals("TBPERIODIC")) {
+          bcI = Constants.TBPERIODIC;
+          fs.yPeriodic = true;          
+        }
+        else if(bc.equals("PERIODIC")) {
+          bcI = Constants.PERIODIC;
+          fs.xPeriodic = true;
+          fs.yPeriodic = true;
+        }
+        else if(bc.equals("LEFTTORIGHT")) {
+          bcI = Constants.LEFTTORIGHT;
+          //fs.xPeriodic = true;          
+        }
+        Initializations.setWallsFromBC(bcI,fs);
+        fs.bc = bcI;
+        // TODO: make periodic / left to right work. Maybe add filling glass case here?
+        canvas1.requestFocusInWindow();
+      }
+    };
+    
+    enclosedRadioButtonMenuItem.addActionListener(bcListener);
+    topLidBCRadioButtonMenuItem.addActionListener(bcListener);
+    diagonalLidsBCRadioButtonMenuItem.addActionListener(bcListener);
+    oppositeLidsBCRadioButtonMenuItem.addActionListener(bcListener);
+    oppositeLidsOppDirsBCRadioButtonMenuItem.addActionListener(bcListener);
+    leftRightPeriodicRadioButtonMenuItem.addActionListener(bcListener);
+    upDownPeriodicRadioButtonMenuItem.addActionListener(bcListener);
+    fourWayPeriodicRadioButtonMenuItem.addActionListener(bcListener);
+  }
+
+  private void addObstacles() {
+    obstaclesSubMenu.setText("Obstacles in flow");
+
+    obstaclesButtonGroup.add(noObstaclesRadioButtonMenuItem);
+    noObstaclesRadioButtonMenuItem.setSelected(true);
+    noObstaclesRadioButtonMenuItem.setText("None");
+    obstaclesSubMenu.add(noObstaclesRadioButtonMenuItem);
+
+    obstaclesButtonGroup.add(squareObstacleRadioButtonMenuItem);
+    squareObstacleRadioButtonMenuItem.setText("Square");
+    obstaclesSubMenu.add(squareObstacleRadioButtonMenuItem);
+
+    obstaclesButtonGroup.add(porousRadioButtonMenuItem);
+    porousRadioButtonMenuItem.setText("Porous flow");
+    obstaclesSubMenu.add(porousRadioButtonMenuItem);
+
+    obstaclesButtonGroup.add(meanderingRadioButtonMenuItem);
+    meanderingRadioButtonMenuItem.setText("Meandering");
+    obstaclesSubMenu.add(meanderingRadioButtonMenuItem);
+
+    obstaclesButtonGroup.add(triangleRadioButtonMenuItem);
+    triangleRadioButtonMenuItem.setText("Triangle");
+    obstaclesSubMenu.add(triangleRadioButtonMenuItem);
+
+    java.awt.event.ActionListener obstaclesListener = new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        //System.out.println(evt.toString());
+        String tb = evt.getActionCommand();
+        int itb = 0;
+        if(tb.equals("None")) itb = Constants.CLEARINSIDE;
+        else if(tb.equals("Meandering")) itb = Constants.MEANDERING;
+        else if(tb.equals("Porous flow")) itb = Constants.POROUS;
+        else if(tb.equals("Square")) itb = Constants.SQUARE;
+        else if(tb.equals("Triangle")) itb = Constants.TRIANGLE;
+        fs.obstacles = itb;
+        //fs.Tbc = tempBCComboBox.getSelectedIndex(); // So match Constants to elements
+        //if(fs.Tbc == Constants.NOTEMP) 
+        Initializations.applyObstacleBoundaryConditions(fs.obstacles, fs.freeSurface, fs);
+      }
+    };
+    
+    //TODO: make these work smoothly with given flows
+    
+    noObstaclesRadioButtonMenuItem.addActionListener(obstaclesListener);
+    squareObstacleRadioButtonMenuItem.addActionListener(obstaclesListener);
+    porousRadioButtonMenuItem.addActionListener(obstaclesListener);
+    meanderingRadioButtonMenuItem.addActionListener(obstaclesListener);
+    triangleRadioButtonMenuItem.addActionListener(obstaclesListener);
+    
+    bcMenu.add(obstaclesSubMenu);
+  }
+  
+  private void addTempBCs() {
+    tempBCSubMenu.setText("Temperature boundary condition");
+
+    tempBCButtonGroup.add(uniformTempRadioButtonMenuItem);
+    uniformTempRadioButtonMenuItem.setSelected(true);
+    uniformTempRadioButtonMenuItem.setText("Uniform temperatures");
+    tempBCSubMenu.add(uniformTempRadioButtonMenuItem);
+
+    tempBCButtonGroup.add(heatedBottomRadioButtonMenuItem);
+    heatedBottomRadioButtonMenuItem.setText("Heated bottom");
+    tempBCSubMenu.add(heatedBottomRadioButtonMenuItem);
+
+    tempBCButtonGroup.add(pointSourceRadioButtonMenuItem);
+    pointSourceRadioButtonMenuItem.setText("Point source");
+    tempBCSubMenu.add(pointSourceRadioButtonMenuItem);
+
+    tempBCButtonGroup.add(heatedLeftWallRadioButtonMenuItem);
+    heatedLeftWallRadioButtonMenuItem.setText("Heated left wall");
+    tempBCSubMenu.add(heatedLeftWallRadioButtonMenuItem);
+
+    tempBCButtonGroup.add(heatedRightWallRadioButtonMenuItem);
+    heatedRightWallRadioButtonMenuItem.setText("Heated right wall");
+    tempBCSubMenu.add(heatedRightWallRadioButtonMenuItem);
+
+    bcMenu.add(tempBCSubMenu);
+
+    java.awt.event.ActionListener tempBCListener = new java.awt.event.ActionListener() {
+      public void actionPerformed(java.awt.event.ActionEvent evt) {
+        //System.out.println(evt.toString());
+        String tb = evt.getActionCommand();
+        int itb = 0;
+        if(tb.equals("Uniform Temperatures")) itb = Constants.NOTEMP;
+        else if(tb.equals("Heated bottom")) itb = Constants.BOTTOM;
+        else if(tb.equals("Point source")) itb = Constants.POINT;
+        else if(tb.equals("Heated left wall")) itb = Constants.LEFT;
+        else if(tb.equals("Heated right wall")) itb = Constants.RIGHT;
+        fs.Tbc = itb;
+        //fs.Tbc = tempBCComboBox.getSelectedIndex(); // So match Constants to elements
+        //if(fs.Tbc == Constants.NOTEMP) 
+        Initializations.applyInitialTemperature(fs.Tbc, fs);
+      }
+    };
+    
+    uniformTempRadioButtonMenuItem.addActionListener(tempBCListener); 
+    heatedBottomRadioButtonMenuItem.addActionListener(tempBCListener); 
+    pointSourceRadioButtonMenuItem.addActionListener(tempBCListener); 
+    heatedLeftWallRadioButtonMenuItem.addActionListener(tempBCListener); 
+    heatedRightWallRadioButtonMenuItem.addActionListener(tempBCListener); 
+  }
+  
+	private void setupInitialConditionsMenu() {
+	  
+	  initialConditionsMenu.setText("Initial conditions");
+
+	  addPresets();
+    initialConditionsMenu.add(jSeparator1);
+    addInitColors();    
+
+    jMenuBar1.add(initialConditionsMenu);	  
+	}
+	
+	private void setupBCsMenu() {
+    bcMenu.setText("Boundary conditions");  
+	  
+    addFlowBCs();
+    bcMenu.add(jSeparator2);
+    addObstacles();
+    bcMenu.add(jSeparator3);
+    addTempBCs();
+    jMenuBar1.add(bcMenu);
+	}
+
+	
+	private void setupMenus() {
+	  
+	  setupInitialConditionsMenu();
+	  
+    setupBCsMenu();      
+
+	}
+
+	private void initComponents() {
+
+        viewButtonGroup = new javax.swing.ButtonGroup();
+        clickActionButtonGroup = new javax.swing.ButtonGroup();
+        jMenuBar1 = new javax.swing.JMenuBar();
+        initialConditionsMenu = new javax.swing.JMenu();
+        singleFluidSubMenu = new javax.swing.JMenu();
+        stationaryRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        vortexRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        freeSurfaceSubMenu = new javax.swing.JMenu();
+        damBreakRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        fallingWaterRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        fallingWater2RadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        projectileRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        stillWaterRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        fillingGlassRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        jSeparator1 = new javax.swing.JPopupMenu.Separator();
+        colorSubMenu = new javax.swing.JMenu();
+        rgbRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        rygcbRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        cmyRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        ybRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        ycRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        cmRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        myRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        continuousRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        gravityCurrentRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        sunsetRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        ripplesRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        nebulaRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        johanRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        triforceRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        colorVarySubMenu = new javax.swing.JMenu();
+        colorVaryXRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        colorVaryYRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        colorDensityCheckBoxMenuItem = new javax.swing.JCheckBoxMenuItem();
+        bcMenu = new javax.swing.JMenu();
+        enclosedRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        lidsSubMenu = new javax.swing.JMenu();
+        topLidBCRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        diagonalLidsBCRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        oppositeLidsBCRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        oppositeLidsOppDirsBCRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        periodicSubMenu = new javax.swing.JMenu();
+        leftRightPeriodicRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        upDownPeriodicRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        fourWayPeriodicRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        constantInflowBCRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        jSeparator2 = new javax.swing.JPopupMenu.Separator();
+        obstaclesSubMenu = new javax.swing.JMenu();
+        noObstaclesRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        squareObstacleRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        porousRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        meanderingRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        triangleRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        jSeparator3 = new javax.swing.JPopupMenu.Separator();
+        tempBCSubMenu = new javax.swing.JMenu();
+        uniformTempRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        heatedBottomRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        pointSourceRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        heatedLeftWallRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        heatedRightWallRadioButtonMenuItem = new javax.swing.JRadioButtonMenuItem();
+        initialScenarioButtonGroup = new javax.swing.ButtonGroup();
+        BCButtonGroup = new javax.swing.ButtonGroup();
+        colorButtonGroup = new javax.swing.ButtonGroup();
+        colorVaryButtonGroup = new javax.swing.ButtonGroup();
+        obstaclesButtonGroup = new javax.swing.ButtonGroup();
+        tempBCButtonGroup = new javax.swing.ButtonGroup();
+        velocityYButton = new javax.swing.JRadioButton();
+        jLabel1 = new javax.swing.JLabel();
+        velocityXButton = new javax.swing.JRadioButton();
+        velocityButton = new javax.swing.JRadioButton();
+        gLabel = new javax.swing.JLabel();
+        bkLabel = new javax.swing.JLabel();
+        wLabel = new javax.swing.JLabel();
+        pressureButton = new javax.swing.JRadioButton();
+        restartButton = new javax.swing.JButton();
+        jLabel2 = new javax.swing.JLabel();
+        placeWallRadioButton = new javax.swing.JRadioButton();
+        pushFluidRadioButton = new javax.swing.JRadioButton();
+        removeWallRadioButton = new javax.swing.JRadioButton();
+        placeJetRadioButton = new javax.swing.JRadioButton();
+        tracerCheckBox = new javax.swing.JCheckBox();
+        velocityVectorCheckBox = new javax.swing.JCheckBox();
+        pauseToggleButton = new javax.swing.JToggleButton();
+        removeWallsButton = new javax.swing.JButton();
+        rLabel = new javax.swing.JLabel();
+        bLabel = new javax.swing.JLabel();
+        removeJetsButton = new javax.swing.JButton();
+        lidVelocitySlider = new javax.swing.JSlider();
+        jLabel3 = new javax.swing.JLabel();
+        colorRangeSlider = new javax.swing.JSlider();
+        jLabel4 = new javax.swing.JLabel();
+        getWallsTextField = new javax.swing.JTextField();
+        getWallArraysButton = new javax.swing.JButton();
+        vorticityButton = new javax.swing.JRadioButton();
+        placeFluidRadioButton = new javax.swing.JRadioButton();
+        removeFluidRadioButton = new javax.swing.JRadioButton();
+        velocityVectorDensitySlider = new javax.swing.JSlider();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        tracerDensitySlider = new javax.swing.JSlider();
+        addMarkedParticleRadioButton = new javax.swing.JRadioButton();
+        resTextField = new javax.swing.JTextField();
+        jLabel8 = new javax.swing.JLabel();
+        boardWidthTextField = new javax.swing.JTextField();
+        jLabel9 = new javax.swing.JLabel();
+        jLabel10 = new javax.swing.JLabel();
+        colorButton = new javax.swing.JRadioButton();
+        colorFluidRadioButton = new javax.swing.JRadioButton();
+        placeColorSourceRadioButton = new javax.swing.JRadioButton();
+        removeColorSourcesButton = new javax.swing.JButton();
+        highResCheckBox = new javax.swing.JCheckBox();
+        interpolationOrderCheckBox = new javax.swing.JCheckBox();
+        jLabel11 = new javax.swing.JLabel();
+        clickEffectSizeSlider = new javax.swing.JSlider();
+        jLabel13 = new javax.swing.JLabel();
+        colorDiffusionSlider = new javax.swing.JSlider();
+        viscosityCheckBox = new javax.swing.JCheckBox();
+        colorChooserButton = new javax.swing.JButton();
+        jLabel12 = new javax.swing.JLabel();
+        temperatureButton = new javax.swing.JRadioButton();
+        jLabel17 = new javax.swing.JLabel();
+        tempMagnitudeSlider = new javax.swing.JSlider();
+        colorWeightSlider = new javax.swing.JSlider();
+        jLabel19 = new javax.swing.JLabel();
+        
+        setupMenus();
+
+        setPreferredSize(new java.awt.Dimension(800, 400));
+
+        viewButtonGroup.add(velocityYButton);
+        velocityYButton.setText("y-Velocity");
+        velocityYButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                velocityYButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        jLabel1.setText("Visualization:");
+
+        viewButtonGroup.add(velocityXButton);
+        velocityXButton.setText("x-Velocity");
+        velocityXButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                velocityXButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        viewButtonGroup.add(velocityButton);
+        //velocityButton.setSelected(true);
+        velocityButton.setText("Velocity (abs.)");
+        velocityButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                velocityButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        //gLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        gLabel.setForeground(new java.awt.Color(0, 255, 0));
+        gLabel.setText("0.0");
+
+        //bkLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        bkLabel.setText("-1.0");
+
+        //wLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        //wLabel.setForeground(new java.awt.Color(255, 255, 255));
+        wLabel.setText("1.0");
+
+        viewButtonGroup.add(pressureButton);
+        pressureButton.setText("Pressure");
+        pressureButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pressureButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        restartButton.setText("Restart");
+        restartButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                restartButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+		
+        jLabel2.setText("Click action:");
+
+        clickActionButtonGroup.add(placeWallRadioButton);
+        placeWallRadioButton.setSelected(true);
+        placeWallRadioButton.setText("Place wall");
+        placeWallRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                placeWallRadioButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        clickActionButtonGroup.add(pushFluidRadioButton);
+        pushFluidRadioButton.setText("Push fluid (by dragging)");
+        pushFluidRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pushFluidRadioButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        clickActionButtonGroup.add(removeWallRadioButton);
+        removeWallRadioButton.setText("Remove wall");
+        removeWallRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeWallRadioButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        clickActionButtonGroup.add(placeJetRadioButton);
+        placeJetRadioButton.setText("Place jet (by dragging)");
+        placeJetRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                placeJetRadioButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        tracerCheckBox.setText("Show tracer particles");
+        tracerCheckBox.setSelected(true);
+        tracerCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tracerCheckBoxActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        velocityVectorCheckBox.setText("Show velocity vectors");
+        velocityVectorCheckBox.setSelected(true);
+        velocityVectorCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                velocityVectorCheckBoxActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        pauseToggleButton.setText("Pause");
+        pauseToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pauseToggleButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        removeWallsButton.setText("Remove placed walls");
+        removeWallsButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeWallsButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        //rLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        rLabel.setForeground(new java.awt.Color(255, 0, 0));
+        rLabel.setText("0.5");
+
+        //bLabel.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        bLabel.setForeground(new java.awt.Color(0, 0, 255));
+        bLabel.setText("-0.5");
+
+        removeJetsButton.setText("Remove placed jets");
+        removeJetsButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeJetsButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+
+        jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel3.setText("Velocity (if applicable)");
+		
+		lidVelocitySlider.addChangeListener(this);
+		lidVelocitySlider.setName("lidVelocitySlider");
+
+        jLabel4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel4.setText("Color range");
+		
+		colorRangeSlider.addChangeListener(this);
+		colorRangeSlider.setName("colorRangeSlider");
+        colorRangeSlider.setMaximum(400);
+        colorRangeSlider.setValue(125);
+
+        getWallArraysButton.setText("Get wall arrays");
+        getWallArraysButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                getWallArraysButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();	
+            }
+        });
+        getWallArraysButton.setVisible(false);
+        getWallsTextField.setVisible(false);
+
+        viewButtonGroup.add(vorticityButton);
+        vorticityButton.setText("Vorticity");
+        vorticityButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                vorticityButtonActionPerformed(evt);
+            }
+        });
+
+        clickActionButtonGroup.add(placeFluidRadioButton);
+        placeFluidRadioButton.setSelected(true);
+        placeFluidRadioButton.setText("Place fluid (drag for velocity)");
+        placeFluidRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                placeFluidRadioButtonActionPerformed(evt);
+            }
+        });
+
+        clickActionButtonGroup.add(removeFluidRadioButton);
+        removeFluidRadioButton.setText("Remove fluid");
+        removeFluidRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeFluidRadioButtonActionPerformed(evt);
+            }
+        });
+
+        jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel5.setText("Velocity vector density");
+
+        jLabel6.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabel6.setText("Tracer density");
+
+        clickActionButtonGroup.add(addMarkedParticleRadioButton);
+        addMarkedParticleRadioButton.setText("Add colored particle");
+        addMarkedParticleRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                addMarkedParticleRadioButtonActionPerformed(evt);
+            }
+        });
+
+        resTextField.setText(Integer.toString(startingRes));
+
+        jLabel8.setText("Grid element width (pixels):");
+
+        boardWidthTextField.setText("400");
+
+        jLabel9.setText("Screen width (pixels):");
+		
+		tracerDensitySlider.addChangeListener(this);
+		tracerDensitySlider.setName("tracerDensitySlider");
+        //tracerDensitySlider.setValue(tMax-10);
+        tracerDensitySlider.setValue(tMax-10);
+        //tracerDensitySlider.setValue(tMax);
+        tracerDensitySlider.setMaximum(tMax);
+        tracerDensitySlider.setMinimum(1);
+		
+		velocityVectorDensitySlider.addChangeListener(this);
+		velocityVectorDensitySlider.setName("velocityVectorDensitySlider");
+        velocityVectorDensitySlider.setValue(vMax-5);
+        //velocityVectorDensitySlider.setValue(vMax);
+        velocityVectorDensitySlider.setMaximum(vMax);
+        velocityVectorDensitySlider.setMinimum(1);		
+    
+        viewButtonGroup.add(colorButton);
+        colorButton.setText("Color");
+        colorButton.setSelected(true);
+        colorButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                colorButtonActionPerformed(evt);
+            }
+        });
+
+        clickActionButtonGroup.add(colorFluidRadioButton);
+        colorFluidRadioButton.setText("Color fluid");
+        colorFluidRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                colorFluidRadioButtonActionPerformed(evt);
+            }
+        });
+
+        clickActionButtonGroup.add(placeColorSourceRadioButton);
+        placeColorSourceRadioButton.setText("Place color source");
+        placeColorSourceRadioButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                placeColorSourceRadioButtonActionPerformed(evt);
+            }
+        });
+
+        removeColorSourcesButton.setText("Remove placed color sources");
+        removeColorSourcesButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                removeColorSourcesButtonActionPerformed(evt);
+            }
+        });
+
+        highResCheckBox.setSelected(false);
+        highResCheckBox.setText("High-res visualization");
+        highResCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                highResCheckBoxActionPerformed(evt);
+            }
+        });
+
+        interpolationOrderCheckBox.setSelected(true);
+        interpolationOrderCheckBox.setText("Higher-order color interpolation");
+        interpolationOrderCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                interpolationOrderCheckBoxActionPerformed(evt);
+            }
+        });
+
+        jLabel11.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        jLabel11.setText("Click diameter: " + canvas1.clickEffectSize + " cells");
+
+        clickEffectSizeSlider.setMaximum(50);
+        clickEffectSizeSlider.setMinimum(1);
+        clickEffectSizeSlider.setValue(15);
+        clickEffectSizeSlider.setName("clickEffectSizeSlider");
+        clickEffectSizeSlider.addChangeListener(this);
+
+        jLabel12.setText("Current color:");
+
+        jLabel13.setText("Rate of diffusion (of color)");
+        colorDiffusionSlider.setEnabled(false);
+
+        viscosityCheckBox.setSelected(false);
+        viscosityCheckBox.setEnabled(false);
+        viscosityCheckBox.setText("Include viscosity");
+        viscosityCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                viscosityCheckBoxActionPerformed(evt);
+            }
+        });
+
+        colorChooserButton.setText("Choose color for color click actions");
+        colorChooserButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                colorChooserButtonActionPerformed(evt);
+            }
+        });
+        
+        viewButtonGroup.add(temperatureButton);
+        temperatureButton.setText("Temperature");
+        temperatureButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                temperatureButtonActionPerformed(evt);
+            }
+        });
+        
+        jLabel17.setText("Magnitude of temperature difference");
+        tempMagnitudeSlider.setEnabled(false);
+        //TODO: enable
+
+        jLabel19.setText("Color weight:");
+        colorWeightSlider.setEnabled(false);
+        //TODO: enable
+        
+        //org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
+		layout = new org.jdesktop.layout.GroupLayout(this.getContentPane());
+        //this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(layout.createSequentialGroup()
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(canvas1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 800, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                    .add(layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(10, 10, 10)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                        .add(jLabel2)
+                                        .add(placeWallRadioButton)
+                                        .add(pushFluidRadioButton, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .add(removeWallRadioButton)
+                                        .add(placeJetRadioButton)
+                                        .add(addMarkedParticleRadioButton)
+                                        .add(placeFluidRadioButton)
+                                        .add(removeFluidRadioButton)
+                                        .add(colorFluidRadioButton))
+                                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                        .add(clickEffectSizeSlider, 0, 0, Short.MAX_VALUE)
+                                        .add(placeColorSourceRadioButton)
+                                        .add(jLabel11)))
+                                .add(29, 29, 29)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(layout.createSequentialGroup()
+                                        .add(colorCanvas, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 20, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                            .add(bkLabel)
+                                            .add(bLabel)
+                                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                                .add(org.jdesktop.layout.GroupLayout.LEADING, wLabel, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .add(org.jdesktop.layout.GroupLayout.LEADING, rLabel, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .add(org.jdesktop.layout.GroupLayout.LEADING, gLabel))))
+                                    .add(temperatureButton)
+                                    .add(colorButton)
+                                    .add(pressureButton)
+                                    .add(jLabel1)
+                                    .add(velocityButton)
+                                    .add(velocityXButton)
+                                    .add(velocityYButton)
+                                    .add(vorticityButton))
+                                .add(60, 60, 60))
+                            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+                                .addContainerGap(111, Short.MAX_VALUE)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(highResCheckBox)
+                                    .add(interpolationOrderCheckBox))
+                                .add(47, 47, 47)))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(restartButton)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(pauseToggleButton))
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, colorRangeSlider, 0, 0, Short.MAX_VALUE)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel4, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel3, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, lidVelocitySlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 136, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                            .add(velocityVectorCheckBox)
+                            .add(tracerCheckBox)
+                            .add(removeWallsButton)
+                            .add(removeColorSourcesButton)
+                            .add(removeJetsButton))
+                        .add(18, 18, 18)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                    .add(org.jdesktop.layout.GroupLayout.LEADING, velocityVectorDensitySlider, 0, 0, Short.MAX_VALUE)
+                                    .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel5, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel6, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .add(org.jdesktop.layout.GroupLayout.LEADING, tracerDensitySlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 136, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                                .add(49, 49, 49))
+                            .add(jLabel10, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 200, Short.MAX_VALUE)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, colorDiffusionSlider, 0, 0, Short.MAX_VALUE)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel8)
+                                .add(layout.createSequentialGroup()
+                                    .add(jLabel19)
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                    .add(colorWeightSlider, 0, 0, Short.MAX_VALUE)))
+                            .add(resTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 77, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(jLabel9)
+                            .add(boardWidthTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 77, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(jLabel13)
+                            .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+                                .add(getWallsTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 77, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(18, 18, 18)
+                                .add(getWallArraysButton)))
+                        .add(16, 16, 16)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(colorChooserButton)
+                            .add(viscosityCheckBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 170, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(tempMagnitudeSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 187, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.TRAILING, false)
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, layout.createSequentialGroup()
+                                    .add(jLabel12, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 101, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .add(currentColorCanvas, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 37, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                                .add(org.jdesktop.layout.GroupLayout.LEADING, jLabel17)))
+                        .add(85, 85, 85)))
+                .addContainerGap())
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(layout.createSequentialGroup()
+                .add(canvas1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 400, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(layout.createSequentialGroup()
+                        .add(colorChooserButton)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(jLabel12)
+                            .add(currentColorCanvas, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 37, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jLabel17)
+                        .add(10, 10, 10)
+                        .add(tempMagnitudeSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(viscosityCheckBox))
+                    .add(layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(layout.createSequentialGroup()
+                                        .add(jLabel2)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(placeWallRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(removeWallRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(pushFluidRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(placeJetRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(placeFluidRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(removeFluidRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(addMarkedParticleRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(colorFluidRadioButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(placeColorSourceRadioButton)
+                                        .add(18, 18, 18)
+                                        .add(jLabel11)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(clickEffectSizeSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                                    .add(layout.createSequentialGroup()
+                                        .add(jLabel1)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(velocityButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(velocityXButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(velocityYButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(pressureButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(vorticityButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(colorButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(temperatureButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                            .add(layout.createSequentialGroup()
+                                                .add(wLabel)
+                                                .add(7, 7, 7)
+                                                .add(rLabel)
+                                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                                .add(gLabel)
+                                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                                .add(bLabel)
+                                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                .add(bkLabel))
+                                            .add(colorCanvas, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 110, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))))
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(interpolationOrderCheckBox)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(highResCheckBox))
+                            .add(layout.createSequentialGroup()
+                                .add(jLabel6)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(tracerDensitySlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(1, 1, 1)
+                                .add(jLabel5)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(velocityVectorDensitySlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(jLabel10)
+                                .add(6, 6, 6)
+                                .add(jLabel8)
+                                .add(8, 8, 8)
+                                .add(resTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(jLabel9)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(boardWidthTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(jLabel13)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(colorDiffusionSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(colorWeightSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                    .add(jLabel19))))
+                        .add(31, 31, 31)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(getWallsTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(getWallArraysButton)))
+                    .add(layout.createSequentialGroup()
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(restartButton)
+                            .add(pauseToggleButton))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(tracerCheckBox)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(velocityVectorCheckBox)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jLabel3)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(lidVelocitySlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(1, 1, 1)
+                        .add(jLabel4)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(colorRangeSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(18, 18, 18)
+                        .add(removeWallsButton)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(removeJetsButton)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(removeColorSourcesButton)))
+                .add(45, 45, 45))
+        );
+    }// </editor-fold>//GEN-END:initComponents
+
+	public void stateChanged(ChangeEvent e) {
+	
+      JSlider source = (JSlider)e.getSource();		
+      int value = source.getValue();
+			String name = source.getName();
+			
+			if (name.equals("lidVelocitySlider"))
+				{
+				canvas1.velScale = (double)(value*value)/625;
+				fs.velScale = (double)(value*value)/625;
+				//System.out.println((double)(value*value)/625);
+				}
+			else if (name.equals("colorRangeSlider"))
+				{
+				//canvas1.colorScale = 5*50./(double)(value);
+				canvas1.colorScale = (double)(value*value)/625;
+				canvas1.arrowLength = 2500/(double)(value*value);
+				updateLabels();
+				canvas1.repaint();
+				}
+			else if (name.equals("tracerDensitySlider"))
+				{
+				//canvas1.colorScale = 5*50./(double)(value);
+				fs.tracersEvery = tMax - value + 1;
+				canvas1.markerShowRatio = tMax - value + 1;
+				tracerAction = true;
+					
+				//canvas1.repaint();
+				}
+			else if (name.equals("velocityVectorDensitySlider"))
+				{
+				//canvas1.colorScale = 5*50./(double)(value);
+				canvas1.vectorsEvery = vMax - value + 1;
+				//canvas1.repaint();
+				}
+      else if (name.equals("clickEffectSizeSlider")) {
+        canvas1.clickEffectSize = value;
+        jLabel11.setText("Click diameter: " + value + " cells");
+        if(value == 1) jLabel11.setText("Click diameter: " + value + " cell");
+      }
+				
+		//canvas1.repaint();
+       canvas1.requestFocusInWindow();
+    }	
+	
+    private void velocityYButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.VY);
+		updateLabels();
+		canvas1.repaint();
+}
+
+    private void velocityXButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.VX);
+		updateLabels();
+		canvas1.repaint();
+}
+
+    private void velocityButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.VELOCITY);
+		updateLabels();
+		canvas1.repaint();
+} 
+
+private void pressureButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.PRESSURE);
+		updateLabels();
+		canvas1.repaint();
+}
+
+private void colorButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.COLOR);
+		updateLabels();
+		canvas1.repaint();
+    }
+
+    private void restartButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		reset = true;
+}
+
+    private void placeWallRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.PLACEWALL;
+}
+
+    private void pushFluidRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.PUSHFLUID;
+}
+
+    private void removeWallRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.REMOVEWALL;
+}
+
+    private void placeJetRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.PLACEJET;
+}
+
+    private void tracerCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {
+		tracerAction = true;
+}
+
+    private void velocityVectorCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {
+		if(velocityVectorCheckBox.isSelected()) canvas1.extraLines = Constants.VECTORS;
+		else canvas1.extraLines = Constants.NONE;
+}
+
+    private void pauseToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		paused = pauseToggleButton.isSelected();
+    }
+
+    private void removeWallsButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		fs.obstacles = Constants.CLEARINSIDE;
+		Initializations.applyObstacleBoundaryConditions(fs.obstacles,fs.freeSurface,fs);
+}
+
+    private void removeJetsButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		jets.removeAllElements();
+		jetDiameters.removeAllElements();
+}
+
+    private void getWallArraysButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		fs.fillSolidArrays();
+		int[] iWalls = fs.iWalls;
+		int[] jWalls = fs.jWalls;
+		int len = iWalls.length;
+		String result = "{";
+		for(int i=0; i<len; i++) 
+			{
+			result += iWalls[i];
+			if(i<len-1) result+= ",";
+			else result += "};";
+			}
+		result += " {";
+		
+		for(int i=0; i<len; i++) 
+			{
+			result += jWalls[i];
+			if(i<len-1) result+= ",";
+			else result += "};";
+			}
+		
+		getWallsTextField.setText(result);
+    }
+	
+	                                                   
+
+    private void vorticityButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.setViewType(Constants.VORTICITY);
+		updateLabels();
+		canvas1.repaint();
+}   
+
+    private void temperatureButtonActionPerformed(java.awt.event.ActionEvent evt) {
+      canvas1.setViewType(Constants.TEMPERATURE);
+      updateLabels();
+      canvas1.repaint();
+    }
+    
+    private void placeFluidRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.PLACEFLUID;		
+}
+
+    private void removeFluidRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.REMOVEFLUID;
+}
+
+    private void addMarkedParticleRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+		canvas1.mouseAction = Constants.ADDMARKEDPARTICLE;
+}                                       
+
+private void colorFluidRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  canvas1.mouseAction = Constants.COLORFLUID;
+}
+
+private void placeColorSourceRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  canvas1.mouseAction = Constants.PLACECOLORSOURCE;
+}
+
+private void removeColorSourcesButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  int pixelsWide = canvas1.pixelsWide;
+  int pixelsHigh = canvas1.pixelsHigh;
+  fs.fixedColor = new boolean[pixelsWide][pixelsHigh];
+  fs.redSource = new double[pixelsWide][pixelsHigh];
+  fs.greenSource = new double[pixelsWide][pixelsHigh];
+  fs.blueSource = new double[pixelsWide][pixelsHigh];
+}
+
+private void highResCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {
+  canvas1.highRes = highResCheckBox.isSelected();
+}
+
+private void interpolationOrderCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {
+// TODO add your handling code here:
+}
+
+private void viscosityCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {
+// TODO add your handling code here:
+}                                              
+
+private void colorChooserButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  Color newColor = JColorChooser.showDialog(
+    this,
+    "Choose Background Color",
+    canvas1.currentColor);
+  
+  if(newColor != null) {
+    canvas1.currentColor = newColor;
+    currentColorCanvas.currentColor = newColor;
+    currentColorCanvas.repaint();
+  }
+}
+
+private void xColorVaryRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  fs.initColorVaryX = true;
+}
+
+private void yColorVaryRadioButtonActionPerformed(java.awt.event.ActionEvent evt) {
+  fs.initColorVaryX = false;
+}
+
+	public void updateLabels()
+	{
+	String w = String.valueOf(canvas1.getWhite());
+	String b = String.valueOf(canvas1.getBlack());
+	String max = String.valueOf(canvas1.getMax());
+	String avg = String.valueOf(canvas1.getAvg());
+	String min = String.valueOf(canvas1.getMin());
+	//System.out.println(max);
+	//System.out.println(avg);
+	//System.out.println(min);
+	
+	
+	if(w.length() > 6) 
+		{
+		if(w.contains("E"))
+			{
+			if(w.charAt(0) == '-') w = w.substring(0,4) + w.substring(w.length()-3,w.length());
+			else w = w.substring(0,3) + w.substring(w.length()-3,w.length());
+			}
+		else if(w.charAt(0) == '-') w = w.substring(0,7);
+		else w = w.substring(0,6);
+		}
+	if(b.length() > 6) 
+		{
+		if(b.contains("E"))
+			{
+			if(b.charAt(0) == '-') b = b.substring(0,4) + b.substring(b.length()-3,b.length());
+			else b = b.substring(0,3) + b.substring(b.length()-3,b.length());
+			}
+		else if(b.charAt(0) == '-') b = b.substring(0,7);
+		else b = b.substring(0,6);
+		}
+	if(max.length() > 6) 
+		{
+		if(max.contains("E"))
+			{
+			if(max.charAt(0) == '-') max = max.substring(0,4) + max.substring(max.length()-3,max.length());
+			else max = max.substring(0,3) + max.substring(max.length()-3,max.length());
+			}
+		else if(max.charAt(0) == '-') max = max.substring(0,7);
+		else max = max.substring(0,6);
+		}
+	if(avg.length() > 6) 
+		{
+		if(avg.contains("E"))
+			{
+			if(avg.charAt(0) == '-') avg = avg.substring(0,4) + avg.substring(avg.length()-3,avg.length());
+			else avg = avg.substring(0,3) + avg.substring(avg.length()-3,avg.length());
+			}
+		else if(avg.charAt(0) == '-') avg = avg.substring(0,7);
+		else avg = avg.substring(0,6);
+		}
+	if(min.length() > 6)
+		{
+		if(min.contains("E"))
+			{
+			if(min.charAt(0) == '-') min = min.substring(0,4) + min.substring(max.length()-3,min.length());
+			else min = min.substring(0,3) + min.substring(min.length()-3,min.length());
+			}
+		else if(min.charAt(0) == '-') min = min.substring(0,7);
+		else min = min.substring(0,6);
+		}
+	rLabel.setText(max);
+	gLabel.setText(avg);
+	bLabel.setText(min);
+	wLabel.setText(w);
+	bkLabel.setText(b);
+	}
+		
+	public void run()
+	{
+	  System.out.println("thread started");
+
+
+	  boolean first = true;
+	  //while (true)
+	  while (Thread.currentThread() == animatorThread)
+	  {
+
+	    sw.start();
+
+	    handleMouseActions();
+	    
+	    if(reset) {
+	      resetSim();
+        first = true;	      
+	    }
+
+	    if(loadPreset)
+	    {
+	      Initializations.loadPreset(preset,fs);
+	      loadPreset = false;
+	      first = true;
+	    }
+
+	    if(first)
+	    {
+	      fs.solvePressureEquations(dt);
+	      fs.computeNewVelocities(dt);	
+	      first = false;
+	    }
+
+	    if(tracerAction)
+	    {
+	      fs.tracers = new Vector<Tracer>();
+	      if(tracerCheckBox.isSelected() && !fs.freeSurface) fs.addTracers();
+	      tracerAction = false;
+	    }
+
+	    if(!paused)
+	    {
+	      if(useSW)
+	      {
+	        sw.stop();
+	        System.out.println("time to get to beginning of loop");
+	        System.out.println(sw.microSecs());
+	        System.out.println();
+	      }
+
+	      //********************* ACTUAL UPDATE LOOP ************************************//	
+	      for(int j=0; j<stepsPerFrame; j++)
+	      {
+	        double tracerT = dt/iters;
+	        for(int i=0; i<iters; i++) 
+	        {
+	          if(fs.freeSurface) {
+	            // Colored particles are included in the markers vector for airFluid status computation
+	            fs.updateMarkers(tracerT);
+	            fs.updateAirFluidStatus();
+	          } else {
+	            fs.updateTracers(tracerT, fs.tracers);
+	            fs.updateTracers(tracerT, fs.coloredParticles);
+	          }
+
+	        }
+
+	        sw.start();	
+	        //canvas1.updateAirFluidStatus();	
+	        if(useSW)
+	        {
+	          sw.stop();
+	          System.out.println("updateAirFluidStatus time");
+	          System.out.println(sw.microSecs());
+	          System.out.println();
+	        }
+
+	        fs.setColorUnderSolids();
+
+	        // TODO: Allow this to be controlled. 
+	        int nAdvect = 1;
+
+	        //for(int i=0; i<nAdvect; i++) fs.advectSignedDistance(dt/nAdvect);
+	        for(int i=0; i<nAdvect; i++) {
+	          fs.advectScalar(fs.phi,dt/nAdvect,interpolationOrderCheckBox.isSelected());
+	          fs.advectScalar(fs.red,dt/nAdvect,interpolationOrderCheckBox.isSelected());
+	          fs.advectScalar(fs.green,dt/nAdvect,interpolationOrderCheckBox.isSelected());
+	          fs.advectScalar(fs.blue,dt/nAdvect,interpolationOrderCheckBox.isSelected());
+            fs.advectScalar(fs.T,dt/nAdvect,interpolationOrderCheckBox.isSelected());
+            fs.diffuseScalar(fs.T,dt/nAdvect,fs.kT);
+	          fs.applyColorSources();
+	        }
+	        Initializations.applyTemperatureBoundaryCondition(fs.Tbc,fs);
+	        //if(fs.initConditions == Constants.LEFTTORIGHT) fs.outflowBC();
+
+	        sw.start();		
+	        fs.advectVelocities(dt);
+	        if(useSW)
+	        {	
+	          sw.stop();
+	          System.out.println("advection time");
+	          System.out.println(sw.microSecs());
+	          System.out.println();
+	        }
+
+	        sw.start();	
+	        fs.applyBodyForces(dt);
+	        if(useSW)
+	        {
+	          System.out.println("body forces");
+	          sw.stop();
+	          System.out.println(sw.microSecs());
+	          System.out.println();
+	        }
+
+	        int nJets = jets.size()/2;
+	        for(int i=0; i<nJets; i++)
+	        {
+	          int[] s = jets.get(2*i);
+	          int[] f = jets.get(2*i+1);
+	          double u = (f[0]-s[0])*jetScale;
+	          double v = (f[1]-s[1])*jetScale;
+	          int ci = s[0];
+	          int cj = s[1];
+	          if(ci > 0 && ci < canvas1.pixelsWide-1 && cj > 0 && cj < canvas1.pixelsHigh-1) {
+	            Vector<int[]> xySur = canvas1.getSurroundingCoords(s,jetDiameters.get(i));
+	            int nSur = xySur.size();
+	            for(int j1=0; j1!=nSur; ++j1) {
+	              fs.ifFluidModifyVel(xySur.get(j1)[0], xySur.get(j1)[1], u, v);
+	            }
+	          }
+
+	        }
+
+
+	        sw.start();	
+	        fs.solvePressureEquations(dt);
+	        sw.stop();
+	        if(useSW)
+	        {
+	          System.out.println("pressure eqns");
+	          System.out.println(sw.microSecs());
+	          System.out.println();
+	        }
+
+	        sw.start();	
+	        fs.computeNewVelocities(dt);
+	        sw.stop();
+	        if(useSW)
+	        {
+	          System.out.println("computeNewVelocities");
+	          System.out.println(sw.microSecs());
+	          System.out.println();
+	        }
+	      }
+
+
+	      if(tracerCheckBox.isSelected()) fs.addTracersIfNeeded();
+	    }
+
+	    canvas1.repaint();	
+	    /*
+		sw.stop();
+		System.out.println("time for whole loop (except 10 ms)");
+		System.out.println(sw.microSecs());
+		System.out.println();
+	     */
+	    timer(pauseTime);
+
+
+	  }
+
+	  //System.out.println("thread terminated");
+	}
+	
+	private void resetSim() {
+	  
+	  try
+    {
+      int nres = Integer.parseInt(resTextField.getText());
+      int nboardWidth = Integer.parseInt(boardWidthTextField.getText());
+      if(nboardWidth>maxBW) 
+      {
+        nboardWidth = maxBW;
+        boardWidthTextField.setText(Integer.toString(maxBW));
+      }
+      if(nboardWidth<3*nres) 
+      {
+        nboardWidth = 3*nres;
+        boardWidthTextField.setText(Integer.toString(2*nres));
+      }
+      reset = false;
+      if(nres != res || nboardWidth != boardWidth)
+      {
+        res = nres;
+        //tMax = 25*res;
+        tMax = 100;
+        boardWidth = nboardWidth;
+        canvas1.fillBG();
+        int pixelsWide = boardWidth/res;
+        int pixelsHigh = boardHeight/res;
+
+        fs.boardWidth = boardWidth;
+        fs.res = res;
+        fs.pixelsWide = pixelsWide;
+        fs.pixelsHigh = pixelsHigh;
+        fs.dropRadius = pixelsHigh/3;
+        canvas1.boardWidth = boardWidth;
+        canvas1.res = res;
+        canvas1.pixelsWide = pixelsWide;
+        canvas1.pixelsHigh = pixelsHigh;
+
+        fs.reset();
+        canvas1.resetBuffer();
+      }
+      else
+      {
+        fs.resetLeavingWalls();   
+      }
+    }
+    catch (NumberFormatException e)
+    {
+      System.out.println("Error - Invalid number, must be an integer.");
+      System.out.println(e);
+    }
+    
+  }
+
+  private void handleMouseActions() {
+	  // Modify fluid based on mouse actions from previous step
+	  
+	  while(!solidifyQueue.isEmpty())
+	  {
+	    try {
+	      int[] c = solidifyQueue.remove();
+	      fs.cellType[c[0]][c[1]] = Constants.SOLID;
+	      fs.makeSolid(c[0],c[1]);  
+	    } catch (java.util.NoSuchElementException e) {
+	      //System.err.println("NoSuchElementException: " 
+	      // + e.getMessage());  
+	      solidifyQueue.clear();
+	      break;
+	    }
+
+	  }
+	  while(!fluidifyQueue.isEmpty())
+	  {
+	    int[] c = fluidifyQueue.remove();
+	    fs.cellType[c[0]][c[1]] = Constants.FLUID;
+	    //fs.updateAirFluidStatus();
+	  }
+
+	  double uC = 0, vC = 0, rC = 1, gC = 1, bC = 1;
+	  if(!placeFluidQueue.isEmpty() && !canvas1.drawJet) {
+	    uC = (canvas1.jetFinishX-canvas1.jetStartX)*1/canvas1.res;
+	    vC = -(canvas1.jetFinishY-canvas1.jetStartY)*1/canvas1.res;
+	    rC = (double)canvas1.currentColor.getRed()/255;
+	    gC = (double)canvas1.currentColor.getGreen()/255;
+	    bC = (double)canvas1.currentColor.getBlue()/255;
+	  }
+	  while(!placeFluidQueue.isEmpty() && !canvas1.drawJet) {
+
+	    int[] c = placeFluidQueue.remove();
+	    fs.cellType[c[0]][c[1]] = Constants.FLUID;
+	    fs.u[c[0]][c[1]] = uC;
+	    fs.u[c[0]+1][c[1]] = uC;
+	    fs.v[c[0]][c[1]] = vC;
+	    fs.v[c[0]][c[1]+1] = vC;
+	    fs.red[c[0]][c[1]] = rC;
+	    fs.green[c[0]][c[1]] = gC;
+	    fs.blue[c[0]][c[1]] = bC;
+
+	    fs.addMarkersToCell(c[0],c[1]);    
+	  }
+	  fs.updateAirFluidStatus();
+
+	  while(!removeFluidQueue.isEmpty()) {
+	    int[] c = removeFluidQueue.remove();
+	    //TODO: group markers by location so it doesn't take so long to remove.
+	    // Shouldn't iterate through all of them. Very slow right now
+	    fs.removeMarkersFrom(c[0],c[1]);
+	  }
+	  fs.updateAirFluidStatus();
+
+	  while(pushes.size() > 1) {
+	    int[] s = pushes.remove();
+	    int[] f = pushes.remove();
+	    double u = (f[0]-s[0])*pushScale;
+	    double v = (f[1]-s[1])*pushScale;
+	    int ci = s[0];
+	    int cj = s[1];
+	    if(ci > 0 && ci < canvas1.pixelsWide-1 && cj > 0 && cj < canvas1.pixelsHigh-1) {
+	      Vector<int[]> xySur = canvas1.getSurroundingCoords(s,canvas1.clickEffectSize);
+	      int nSur = xySur.size();
+	      for(int i=0; i!=nSur; ++i) {
+	        fs.ifFluidModifyVel(xySur.get(i)[0], xySur.get(i)[1], u, v);
+	      }
+	    }
+	  }
+	  if(!pushes.isEmpty()) pushes.remove();
+
+  }
+
+  public double[] getVinfo()
+	{
+	return vAvgDevArray;
+	}
+	
+	
+	public void start()
+	{
+	System.out.println("Starting...");            
+	}
+	
+	public void stop()
+	{
+	System.out.println("Stopping...");
+	}	
+	
+	public static void timer(int t)
+    {
+	try {
+	    Thread.sleep(t);
+	}
+	catch (InterruptedException e) {
+	    System.out.println ("Sleep Interrupted");
+	}
+    }
+	
+}

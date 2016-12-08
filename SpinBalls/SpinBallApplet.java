@@ -1,0 +1,854 @@
+import javax.swing.JApplet;
+import java.awt.Graphics;
+import java.util.Vector;
+import java.awt.event.*;
+import java.awt.*;
+import java.text.*;
+import java.util.Scanner;
+import java.io.File;
+import java.util.Vector;
+import java.lang.Math;
+import java.util.Random;
+import javax.swing.event.*;
+import javax.swing.*;
+
+public class SpinBallApplet extends JApplet implements Runnable,ChangeListener {
+    
+	private double multiplier = 12.0;
+	SpinBallCanvas screen;
+	SpinBallCanvas canvas1;
+	boolean loop = false;
+	Thread animatorThread;
+	private int boardWidth = 500;
+	private int boardHeight = 500;
+	private double scale = 100;
+	private double ballBallCOR = 0.8;
+	private boolean paused = false;
+	private double vNormalMin = 0.0;
+	
+	public Vector<SpinBall> balls = new Vector<SpinBall>();
+	
+    // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTextField ballCORTextBox;
+    private javax.swing.JTextField ballPaddleFrictionTextBox;
+    private javax.swing.JTextField ballWallFrictionTextBox;
+    private javax.swing.JRadioButton chosenOmegaButton;
+    private javax.swing.JRadioButton chosenRadiusButton;
+    private javax.swing.JButton clearButton;
+    private javax.swing.JCheckBox gravityCheckBox;
+    private javax.swing.JSlider gravityStrengthSlider;
+    private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
+    private javax.swing.JLabel jLabel12;
+    private javax.swing.JLabel jLabel13;
+    private javax.swing.JLabel jLabel14;
+    private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
+    private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel jLabel8;
+    private javax.swing.JLabel jLabel9;
+    private javax.swing.ButtonGroup omegaButtonGroup;
+    private javax.swing.JSlider omegaSlider;
+    private javax.swing.JTextField omegaTextField;
+    private javax.swing.JCheckBox pathCheckBox;
+    private javax.swing.JToggleButton pauseToggleButton;
+    private javax.swing.ButtonGroup radiusButtonGroup;
+    private javax.swing.JSlider radiusSlider;
+    private javax.swing.JTextField radiusTextField;
+    private javax.swing.JRadioButton randomOmegaButton;
+    private javax.swing.JRadioButton randomRadiusButton;
+    private javax.swing.JSlider rotationCurvatureSlider;
+    private javax.swing.JComboBox scenariosComboBox;
+    private javax.swing.JButton setCORButton;
+    private javax.swing.JSlider setCORSlider;
+    private javax.swing.JButton setWallBallFrictionButton;
+    private javax.swing.JSlider setWallBallFrictionSlider;
+    private javax.swing.JButton setWallPaddleFrictionButton;
+    private javax.swing.JSlider setWallPaddleFrictionSlider;
+    // End of variables declaration//GEN-END:variables
+	
+	private org.jdesktop.layout.GroupLayout layout;
+	
+	public void init()
+	{
+	
+	System.out.println("Initializing...");
+	//SpinBall b = new SpinBall(50, 50, 4, 0.9, 0.3, 0, 0,  boardWidth,  boardHeight);
+	//balls.add(b);
+	screen = new SpinBallCanvas(balls, boardWidth, boardHeight, multiplier, this);
+	canvas1 = screen;
+	add(screen);
+    initComponents();
+	this.setLayout(layout);
+	}
+	
+	public void start()
+	{
+	System.out.println("Starting...");
+	//paused = false;
+	
+	if (animatorThread == null) {
+            animatorThread = new Thread(this);
+        }
+        animatorThread.start();
+
+	}
+	
+	public void stop()
+	{
+	System.out.println("Stopping...");
+	//screen.repaint();
+	//paused = true;
+	}
+	
+	private void initComponents() {
+
+        omegaButtonGroup = new javax.swing.ButtonGroup();
+        radiusButtonGroup = new javax.swing.ButtonGroup();
+        jLabel1 = new javax.swing.JLabel();
+        jLabel2 = new javax.swing.JLabel();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        randomOmegaButton = new javax.swing.JRadioButton();
+        chosenOmegaButton = new javax.swing.JRadioButton();
+        omegaTextField = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        jLabel6 = new javax.swing.JLabel();
+        omegaSlider = new javax.swing.JSlider();
+        randomRadiusButton = new javax.swing.JRadioButton();
+        chosenRadiusButton = new javax.swing.JRadioButton();
+        radiusTextField = new javax.swing.JTextField();
+        jLabel7 = new javax.swing.JLabel();
+        radiusSlider = new javax.swing.JSlider();
+        pauseToggleButton = new javax.swing.JToggleButton();
+        clearButton = new javax.swing.JButton();
+        jLabel8 = new javax.swing.JLabel();
+        ballWallFrictionTextBox = new javax.swing.JTextField();
+        setWallBallFrictionButton = new javax.swing.JButton();
+        setWallBallFrictionSlider = new javax.swing.JSlider();
+        setWallPaddleFrictionButton = new javax.swing.JButton();
+        ballPaddleFrictionTextBox = new javax.swing.JTextField();
+        setWallPaddleFrictionSlider = new javax.swing.JSlider();
+        jLabel9 = new javax.swing.JLabel();
+        gravityStrengthSlider = new javax.swing.JSlider();
+        jLabel10 = new javax.swing.JLabel();
+        rotationCurvatureSlider = new javax.swing.JSlider();
+        jLabel11 = new javax.swing.JLabel();
+        jLabel12 = new javax.swing.JLabel();
+        gravityCheckBox = new javax.swing.JCheckBox();
+        pathCheckBox = new javax.swing.JCheckBox();
+        scenariosComboBox = new javax.swing.JComboBox();
+        jLabel13 = new javax.swing.JLabel();
+        jLabel14 = new javax.swing.JLabel();
+        setCORSlider = new javax.swing.JSlider();
+        ballCORTextBox = new javax.swing.JTextField();
+        setCORButton = new javax.swing.JButton();
+
+        setPreferredSize(new java.awt.Dimension(750, 500));
+
+        jLabel1.setText("Click and drag within the window to add a ball");
+
+        jLabel2.setText("where you click with speed proportional to how");
+
+        jLabel3.setText("far you drag the mouse.");
+
+        jLabel4.setText("Properties of next ball:");
+
+        omegaButtonGroup.add(randomOmegaButton);
+        randomOmegaButton.setSelected(true);
+        randomOmegaButton.setText("Random rotational velocity");
+        randomOmegaButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                randomOmegaButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        omegaButtonGroup.add(chosenOmegaButton);
+        chosenOmegaButton.setText("Rotational velocity of");
+        chosenOmegaButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                chosenOmegaButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        omegaTextField.setText("0");
+
+        jLabel5.setText("radians/sec");
+
+        jLabel6.setText("(counterclockwise)");
+
+		omegaSlider.setName("omegaSlider");	
+		radiusSlider.setName("radiusSlider");	
+		setWallBallFrictionSlider.setName("setWallBallFrictionSlider");	
+		setWallPaddleFrictionSlider.setName("setWallPaddleFrictionSlider");	
+		gravityStrengthSlider.setName("gravityStrengthSlider");	
+		rotationCurvatureSlider.setName("rotationCurvatureSlider");	
+		setCORSlider.setName("setCORSlider");	
+        omegaSlider.setMaximum(150);
+        omegaSlider.setMinimum(-150);
+        omegaSlider.setValue(0);
+		
+		omegaSlider.addChangeListener(this);
+		radiusSlider.addChangeListener(this);
+		setWallBallFrictionSlider.addChangeListener(this);
+		setWallPaddleFrictionSlider.addChangeListener(this);
+		gravityStrengthSlider.addChangeListener(this);
+		rotationCurvatureSlider.addChangeListener(this);
+		setCORSlider.addChangeListener(this);
+
+        radiusButtonGroup.add(randomRadiusButton);
+        randomRadiusButton.setSelected(true);
+        randomRadiusButton.setText("Random radius");
+        randomRadiusButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                randomRadiusButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        radiusButtonGroup.add(chosenRadiusButton);
+        chosenRadiusButton.setText("Radius of");
+        chosenRadiusButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                chosenRadiusButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        radiusTextField.setText("20");
+
+        jLabel7.setText("pixels");
+
+        radiusSlider.setMaximum(150);
+        radiusSlider.setMinimum(1);
+        radiusSlider.setValue(20);
+
+        pauseToggleButton.setText("Pause");
+        pauseToggleButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pauseToggleButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        clearButton.setText("Remove all balls");
+        clearButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                clearButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        jLabel8.setText("Coefficient of friction between balls and walls:");
+
+        ballWallFrictionTextBox.setText("0.20");
+
+        setWallBallFrictionButton.setText("Set to");
+        setWallBallFrictionButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                setWallBallFrictionButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        setWallBallFrictionSlider.setMaximum(200);
+        setWallBallFrictionSlider.setValue(20);
+
+        setWallPaddleFrictionButton.setText("Set to");
+        setWallPaddleFrictionButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                setWallPaddleFrictionButtonActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        ballPaddleFrictionTextBox.setText("0.85");
+
+        setWallPaddleFrictionSlider.setMaximum(200);
+        setWallPaddleFrictionSlider.setValue(85);
+
+        jLabel9.setText("Coefficient of friction between balls and paddle:");
+
+        gravityStrengthSlider.setMaximum(200);
+        gravityStrengthSlider.setValue(100);
+
+        jLabel10.setText("Gravity's strength:");
+
+        rotationCurvatureSlider.setMaximum(200);
+        rotationCurvatureSlider.setValue(100);
+
+        jLabel11.setText("Curvature of trajectories");
+
+        jLabel12.setText("from rotation:");
+
+        gravityCheckBox.setText("Gravity on");
+        gravityCheckBox.setSelected(true);
+        gravityCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                gravityCheckBoxActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        pathCheckBox.setSelected(true);
+        pathCheckBox.setText("Show trails of trajectories");
+        pathCheckBox.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                pathCheckBoxActionPerformed(evt);
+				canvas1.requestFocusInWindow();
+            }
+        });
+
+        scenariosComboBox.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Backspin", "Topspin", "Many balls", "Ping pong ball plus basketball" }));
+		
+		ItemListener scenarioSelectionListener = new ItemListener() {
+			public void itemStateChanged(ItemEvent e) {
+			if (e.getStateChange() == ItemEvent.SELECTED)
+				{				
+				String select = e.getItem().toString();	
+				canvas1.selectScenario(select);
+				}
+				canvas1.requestFocusInWindow();
+			}	        
+		};
+		
+        scenariosComboBox.addItemListener(scenarioSelectionListener);
+		
+		
+        jLabel13.setText("Preset scenarios:");
+
+        jLabel14.setText("Coefficient of restitution of balls:");
+
+        setCORSlider.setMaximum(200);
+        setCORSlider.setValue(160);
+
+        ballCORTextBox.setText("0.80");
+
+        setCORButton.setText("Set to");
+        setCORButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                setCORButtonActionPerformed(evt);
+            }
+        });
+		
+
+        //org.jdesktop.layout.GroupLayout layout = new org.jdesktop.layout.GroupLayout(this);
+		layout = new org.jdesktop.layout.GroupLayout(this.getContentPane());
+        //this.setLayout(layout);
+        layout.setHorizontalGroup(
+            layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(layout.createSequentialGroup()
+                .add(canvas1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 500, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(layout.createSequentialGroup()
+                        .add(9, 9, 9)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                .add(layout.createSequentialGroup()
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                        .add(jLabel1)
+                                        .add(jLabel2)
+                                        .add(jLabel3)
+                                        .add(jLabel4)
+                                        .add(randomOmegaButton)
+                                        .add(layout.createSequentialGroup()
+                                            .add(chosenOmegaButton)
+                                            .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                            .add(omegaTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 37, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                            .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                            .add(jLabel5)))
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED))
+                                .add(org.jdesktop.layout.GroupLayout.TRAILING, layout.createSequentialGroup()
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                    .add(omegaSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 127, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                    .add(jLabel6)
+                                    .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)))
+                            .add(layout.createSequentialGroup()
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING, false)
+                                    .add(layout.createSequentialGroup()
+                                        .add(chosenRadiusButton)
+                                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                        .add(radiusTextField))
+                                    .add(randomRadiusButton))
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(jLabel7)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(radiusSlider, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 94, Short.MAX_VALUE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)))
+                        .add(58, 58, 58))
+                    .add(layout.createSequentialGroup()
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(setWallBallFrictionButton)
+                                .add(10, 10, 10)
+                                .add(ballWallFrictionTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 30, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(setWallBallFrictionSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 127, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                            .add(jLabel8)
+                            .add(layout.createSequentialGroup()
+                                .add(pauseToggleButton)
+                                .add(18, 18, 18)
+                                .add(clearButton))
+                            .add(jLabel9)
+                            .add(gravityCheckBox)
+                            .add(pathCheckBox)
+                            .add(layout.createSequentialGroup()
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                                    .add(jLabel11)
+                                    .add(layout.createSequentialGroup()
+                                        .add(23, 23, 23)
+                                        .add(jLabel12)))
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(rotationCurvatureSlider, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, 108, Short.MAX_VALUE))
+                            .add(layout.createSequentialGroup()
+                                .add(jLabel10)
+                                .add(18, 18, 18)
+                                .add(gravityStrengthSlider, 0, 0, Short.MAX_VALUE))
+                            .add(layout.createSequentialGroup()
+                                .add(setWallPaddleFrictionButton)
+                                .add(10, 10, 10)
+                                .add(ballPaddleFrictionTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 30, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(setWallPaddleFrictionSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 127, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                            .add(layout.createSequentialGroup()
+                                .add(jLabel13)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(scenariosComboBox, 0, 151, Short.MAX_VALUE))
+                            .add(jLabel14)
+                            .add(layout.createSequentialGroup()
+                                .add(setCORButton)
+                                .add(10, 10, 10)
+                                .add(ballCORTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 30, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(setCORSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 127, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
+                        .add(45, 45, 45))))
+        );
+        layout.setVerticalGroup(
+            layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+            .add(layout.createSequentialGroup()
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(canvas1, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, 500, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                    .add(layout.createSequentialGroup()
+                        .add(jLabel1)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jLabel2)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jLabel3)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(jLabel4)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(randomOmegaButton)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(chosenOmegaButton)
+                            .add(omegaTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(jLabel5))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(omegaSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                            .add(jLabel6))
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                                .add(randomRadiusButton)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                                    .add(chosenRadiusButton)
+                                    .add(radiusTextField, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                    .add(jLabel7)))
+                            .add(layout.createSequentialGroup()
+                                .add(30, 30, 30)
+                                .add(radiusSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(pauseToggleButton)
+                            .add(clearButton))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                        .add(jLabel8)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                                .add(ballWallFrictionTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(setWallBallFrictionButton))
+                            .add(setWallBallFrictionSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(jLabel9)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                                .add(ballPaddleFrictionTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                                .add(setWallPaddleFrictionButton))
+                            .add(setWallPaddleFrictionSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(jLabel10)
+                            .add(gravityStrengthSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                            .add(layout.createSequentialGroup()
+                                .add(jLabel11)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(jLabel12)
+                                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                                .add(gravityCheckBox))
+                            .add(rotationCurvatureSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(pathCheckBox)
+                        .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                        .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                            .add(jLabel13)
+                            .add(scenariosComboBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))))
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.UNRELATED)
+                .add(jLabel14)
+                .addPreferredGap(org.jdesktop.layout.LayoutStyle.RELATED)
+                .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.LEADING)
+                    .add(layout.createParallelGroup(org.jdesktop.layout.GroupLayout.BASELINE)
+                        .add(ballCORTextBox, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE)
+                        .add(setCORButton))
+                    .add(setCORSlider, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE, org.jdesktop.layout.GroupLayout.DEFAULT_SIZE, org.jdesktop.layout.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(45, Short.MAX_VALUE))
+        );
+    }// </editor-fold>//GEN-END:initComponents
+	
+	public void stateChanged(ChangeEvent e) {
+	
+        JSlider source = (JSlider)e.getSource();
+		
+            int value = source.getValue();
+			String name = source.getName();
+			if (name.equals("omegaSlider"))
+				{
+				String val = String.valueOf((value*Math.PI/10));
+				if(val.length() > 5) val = val.substring(0,5);
+				omegaTextField.setText(val);
+				chosenOmegaButton.setSelected(true);
+				canvas1.setRandomOmega(false);				
+				}
+			else if (name.equals("setWallBallFrictionSlider"))
+				{
+				String val = String.valueOf((float)value/100);
+				if(val.length() > 4) val = val.substring(0,4);
+				ballWallFrictionTextBox.setText(val);
+				canvas1.setWallBallFriction((double)value/100);				
+				}
+			else if (name.equals("setWallPaddleFrictionSlider"))
+				{
+				String val = String.valueOf((float)value/100);
+				if(val.length() > 4) val = val.substring(0,4);
+				ballPaddleFrictionTextBox.setText(val);
+				canvas1.setWallPaddleFriction((double)value/100);				
+				}
+			else if (name.equals("setCORSlider"))
+				{
+				String val = String.valueOf((float)value/200);
+				if(val.length() > 4) val = val.substring(0,4);
+				ballCORTextBox.setText(val);
+				canvas1.setCOR((double)value/200);	
+				ballBallCOR = (double)value/200;
+				}
+			else if (name.equals("gravityStrengthSlider"))
+				{
+				canvas1.setGravity(value);				
+				}
+			else if (name.equals("rotationCurvatureSlider"))
+				{
+				String val = String.valueOf((float)value/100);
+				if(val.length() > 5) val = val.substring(0,5);
+				//ballWallFrictionTextBox.setText(val);
+				//canvas1.setWallBallFriction((double)value/100);				
+				}
+			else if (name.equals("radiusSlider"))
+				{
+				radiusTextField.setText(String.valueOf(value));
+				chosenRadiusButton.setSelected(true);
+				canvas1.setRandomRadius(false);		
+				}
+				
+		//canvas1.repaint();
+       canvas1.requestFocusInWindow();
+    }
+
+    private void randomOmegaButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                  
+        // TODO add your handling code here:
+		canvas1.setRandomOmega(true);
+    }                                                 
+
+    private void chosenOmegaButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                  
+        // TODO add your handling code here:
+		canvas1.setRandomOmega(false);
+}                                                 
+
+    private void gravityCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {                                                
+        // TODO add your handling code here:
+		canvas1.setGravity(gravityCheckBox.isSelected());
+}                                              
+
+    private void pathCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {                                             
+        // TODO add your handling code here:
+		canvas1.setTraces(pathCheckBox.isSelected());
+}             
+
+	public void setTraces(boolean val)
+	{
+	pathCheckBox.setSelected(val);
+	}      
+
+	public void setGravity(boolean val)
+	{
+	gravityCheckBox.setSelected(val);
+	}
+
+    private void setWallPaddleFrictionButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                            
+        // TODO add your handling code here:
+		String val = ballPaddleFrictionTextBox.getText();
+		double v = Double.parseDouble(val);
+		canvas1.setWallPaddleFriction(v);	
+		setWallPaddleFrictionSlider.setValue((int)(v*100));		
+}                                                           
+
+    private void setWallBallFrictionButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                          
+        // TODO add your handling code here:
+		String val = ballWallFrictionTextBox.getText();
+		double v = Double.parseDouble(val);
+		canvas1.setWallBallFriction(v);	
+		setWallBallFrictionSlider.setValue((int)(v*100));
+    }                                                         
+
+    private void pauseToggleButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                  
+        // TODO add your handling code here:
+		canvas1.setPaused(pauseToggleButton.isSelected());
+    }                                                 
+
+    private void clearButtonActionPerformed(java.awt.event.ActionEvent evt) {                                            
+        // TODO add your handling code here:
+		canvas1.removeAll();
+    }                                           
+
+    private void chosenRadiusButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                   
+        // TODO add your handling code here:
+		try
+		{
+		int radius = Integer.parseInt(radiusTextField.getText());
+		canvas1.setRadius(radius);	
+		canvas1.setRandomRadius(false);	
+		}
+		catch (NumberFormatException e)
+			{
+			System.out.println("Error - Invalid number (radius must be integer):");
+			System.out.println(e);	
+			}			
+    }           
+
+	public int getRadius()
+	{
+		try
+		{
+		int radius = Integer.parseInt(radiusTextField.getText());
+		//canvas1.setRadius(radius);	
+		return radius;
+		}
+		catch (NumberFormatException e)
+			{
+			System.out.println("Error - Invalid number (radius must be integer):");
+			System.out.println(e);	
+			}	
+		return 20;
+	}     
+
+	public double getOmega()
+	{
+		try
+		{
+		double omega = Double.parseDouble(omegaTextField.getText());
+		//canvas1.setRadius(radius);	
+		return omega;
+		}
+		catch (NumberFormatException e)
+			{
+			System.out.println("Error - Invalid number (omega must be a double):");
+			System.out.println(e);	
+			}	
+		return 0;
+	}
+
+    private void randomRadiusButtonActionPerformed(java.awt.event.ActionEvent evt) {                                                   
+        // TODO add your handling code here:
+		canvas1.setRandomRadius(true);
+    }      
+	
+	public void run()
+	{
+	while (Thread.currentThread() == animatorThread)
+	{
+		if(!screen.advanceMode || screen.advanceOne())
+		{
+		//screen.requestFocusInWindow();
+		
+		if(screen.checkPause()) paused = true;
+		else paused = false;
+		
+		if (!paused)
+			{
+		
+			for (int i=0; i < balls.size(); i++)
+			{
+				SpinBall bCur = balls.get(i);
+				bCur.update();					
+			}
+			
+			
+			//for (int k=0; k < balls.size(); k++)
+			//{
+			//while
+			boolean runAgain = true;
+			
+			while (runAgain)
+			{
+			runAgain = false;
+			
+			for (int i=0; i < balls.size(); i++)
+			{
+				SpinBall bCur = balls.get(i);
+				for (int j=i+1; j < balls.size(); j++)
+				{
+				if(balls.size()-1 < j) break;
+				SpinBall bOth = balls.get(j);
+				if (bCur.collide(bOth)) //make balls bounce if they collide
+					{
+					//System.out.println(bCur.collisionPoint(bOth));
+					//System.out.println("balls i, j colliding are " + i + ", " + j);
+					ballBounce(bCur,bOth);		
+					//System.out.println("distance between them now is " + bCur.getCoord().dist(bOth.getCoord()));	
+					} 
+				
+				// if still touching, not free
+				if(bCur.collide(bOth)) 
+				{
+				//screen.stillTouching(i,j);
+				//runAgain = true;
+				//bCur.update();	
+				//bOth.update();
+				}
+				//else screen.notTouching(i,j);
+				}
+			}
+			
+			}
+			
+			/*
+			for (int i=0; i < balls.size(); i++)
+			{
+				boolean free = true;
+				SpinBall bCur = balls.get(i);
+				for (int j=i+1; j < balls.size(); j++)
+				{
+				SpinBall bOth = balls.get(j);
+				if (bCur.collide(bOth)) free = false;
+				}
+				if (free)
+				{
+				bCur.setAccelerationX(0);
+				bCur.setAccelerationY(0);
+				}						
+			
+			}
+			*/			
+			
+			screen.movePaddle();
+		
+			screen.checkPaddleCollisions();
+			
+			}
+		}
+		
+			
+		screen.repaint();
+		try {
+			Thread.sleep((int)multiplier);
+		}
+		catch (InterruptedException e) {
+			System.out.println ("Sleep Interrupted");
+		}
+	}
+	}   
+
+    private void setCORButtonActionPerformed(java.awt.event.ActionEvent evt) {
+        // TODO add your handling code here:
+		String val = ballCORTextBox.getText();
+		double v = Double.parseDouble(val);
+		canvas1.setCOR(v);	
+		setCORSlider.setValue((int)(v*200));
+		ballBallCOR = v;
+}
+	
+	public void ballBounce(SpinBall bCur, SpinBall bOth)
+	{
+	// note: bCur will always be a ball created earlier  than bOth(good to know for testing)
+	int stuckCount = 0;
+	Coord coll = bCur.collisionPoint(bOth,balls);
+	//Also moves bCur and bOth to when they just bounce
+	
+	if(coll != null)
+		{
+		double normal = bOth.getCoord().angle(coll);
+		
+		double vAng1 = bCur.getDirection();
+		double vAng2 = bOth.getDirection();
+		
+		double theta1 = vAng1 - normal;
+		double theta2 = vAng2 - normal;
+		
+		double vTan1 = bCur.getSpeed()*Math.sin(theta1);
+		double vTan2 = bOth.getSpeed()*Math.sin(theta2);
+		
+		double vNorm1 = bCur.getSpeed()*Math.cos(theta1);
+		double vNorm2 = bOth.getSpeed()*Math.cos(theta2);
+		double vNormNet = Math.abs(vNorm1 - vNorm2);
+		//System.out.println("vN 1, vN 2, vNNet:");
+		//System.out.println(vNorm1);
+		//System.out.println(vNorm2);
+		//System.out.println(vNormNet);
+		
+		if(vNormNet > vNormalMin)
+			{
+			
+			//Now treat normal speeds as 1-D case (ie exchange normals)
+			double tempV = vNorm1;
+			vNorm1 = vNorm2;
+			vNorm2 = tempV;
+			
+			// Tangent speeds are unaffected, so put speeds back together (This is a rotation matrix of normal degrees clockwise, back to x and y coordinate system)
+			double newVX1 = vNorm1*Math.cos(normal) - vTan1*Math.sin(normal);
+			double newVY1 = -(vNorm1*Math.sin(normal) + vTan1*Math.cos(normal));
+			double newVX2 = vNorm2*Math.cos(normal) - vTan2*Math.sin(normal);
+			double newVY2 = -(vNorm2*Math.sin(normal) + vTan2*Math.cos(normal));
+				
+			bCur.setSpeedX(newVX1*ballBallCOR);
+			bCur.setSpeedY(newVY1*ballBallCOR);
+			bOth.setSpeedX(newVX2*ballBallCOR);
+			bOth.setSpeedY(newVY2*ballBallCOR);
+			//System.out.println("actual collision");
+			}
+		else
+			{
+			
+			}
+		}
+	
+	}
+	
+	public void destroy()
+	{
+	System.out.println("Destroying...");
+	}
+}
