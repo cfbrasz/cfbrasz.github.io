@@ -4,20 +4,15 @@
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <title>Voronoi Visualizations</title>
 <meta name="Keywords" lang="en" content="voronoi, fortune, javascript, raymond hill"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" type="text/css" href="ProgramStyle.css">
 <!--<div id="divroot" class="canvasWidth">-->
 <div id="divroot" style="width:860px;">
 <!--[if lte IE 8]><script type="text/javascript" src="excanvas/excanvas.compiled.js"></script><![endif]-->
 <script type="text/javascript" src="rhill-voronoi-core.min.js"></script>
 <style type="text/css">
-body {font-family:tahoma,verdana,arial;font-size:13px;margin:0;padding:0}
-body > div {margin-left:4px;margin-right:4px;}
-body > div > div {margin:0;border:1px solid #ccc;border-top:0;padding:4px;}
-h1 {margin:0 0 0.5em 0;padding: 4px 5em 4px 4px;font:bold large sans-serif;background-color:#c9d7f1;}
-h4 {font-size:14px;margin:0.5em 0 0 0;border:0;border-bottom:solid 1px #c9d7f1;padding:2px;background-color:#e5ecf9;}
-h4 > span {cursor:pointer}
-#canvasParent {margin-top:0;margin-bottom:1em;padding:0;border:0}
-#voronoiCode {font:11px monospace;overflow:auto;color:#666;}
-#voronoiCode span {color:green;font-weight:bold;}
 .canvasWidth {
   width: 850px;
 }
@@ -916,7 +911,7 @@ if (srcElem) {
   <option value="-1">Facility location</option>
   <option value="-2">Color gradient</option>
   </select>
-  <p class="noMargins">Various visualization modes for interactively made <a href="https://en.wikipedia.org/wiki/Voronoi_diagram">Voronoi diagrams</a>. Created to help prepare a <a href="http://cfbrasz.github.io/talks/VoronoiGames.pdf">talk on Voronoi games</a> I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a>.
+  <p class="noMargins">Various visualization modes for interactively made <a href="https://en.wikipedia.org/wiki/Voronoi_diagram">Voronoi diagrams</a>. Created to help prepare a <a href="talks/VoronoiGames.pdf">talk on Voronoi games</a> I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a>.
 <!-- <p class="noMargins">Take turns placing points in the plane to maximize the area of your cells in the resulting <a href="https://en.wikipedia.org/wiki/Voronoi_diagram">Voronoi diagram</a>. The player with a greater area after a set number of turns wins. -->
 </p>
 <p class="noMargins">Base code taken from <a href="http://www.raymondhill.net/voronoi/rhill-voronoi.html">http://www.raymondhill.net/voronoi/rhill-voronoi.html</a><ul style="margin-top:0">
@@ -935,6 +930,8 @@ if (srcElem) {
 <input id="limitTo1D" type="checkbox" value="" onclick="VoronoiDemo.limitTo1D(document.getElementById('limitTo1D').checked)"/>Limit sites to one dimension
 <input id="recalculateOnMouseMove" type="checkbox" checked="checked" onclick="VoronoiDemo.switchRecalculateOnMouseMove(document.getElementById('recalculateOnMouseMove').checked)"/>Update diagram on mouse move
 </div>
+<p>
+<a href="programs.html">Back to programs</a>
 
 </body>
 </html>

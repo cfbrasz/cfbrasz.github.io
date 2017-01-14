@@ -2,7 +2,8 @@
 <div class="content">
 
   <head>
-    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"> 
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">  -->
     <style>
       html, body {
         width:  100%;
@@ -15,6 +16,10 @@
   </head>
 
 <title>N-body simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<style type="text/css">
+* {font-family: "Lato", sans-serif}
+</style>
 
 <body>
   <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
@@ -26,12 +31,12 @@
         window.setTimeout(callback, 1000 / 60);
       };
     })();
-    function ball(x0, y0, u0, v0) {
+    function ball(x0, y0, u0, v0, m) {
       this.x = x0;
       this.y = y0;
       this.u = u0;
       this.v = v0;
-      this.mass = startingMass;
+      this.mass = m;
       this.radius = startingRadius;
       var linewidth = 1;
       var nScreenBuffer = 1;
@@ -46,27 +51,27 @@
         // Remove balls that move off screen (give nScreenBuffer*width of a buffer)
         
         if(this.x > canvas.width*(nScreenBuffer+1) + this.radius || this.y > canvas.height*(nScreenBuffer+1) + this.radius
-        || this.x < -canvas.width*nScreenBuffer-this.radius || this.y < -canvas.height*nScreenBuffer-this.radius) {          
+        || this.x < -canvas.width*nScreenBuffer-this.radius || this.y < -canvas.height*nScreenBuffer-this.radius) {
           var j = planets.indexOf(this);
           planets.splice(j,1);
         }
         
       }
       
-      this.resolveForce = function(ball2, forceType) {
+      this.resolveForce = function(ball2, forceType, dt) {
         if(forceType == "gravitational") {
           var dx = this.x - ball2.x;
           var dy = this.y - ball2.y;
           var r2 = dx*dx + dy*dy;
           var minR2 = (this.radius + ball2.radius)*(this.radius + ball2.radius);
-          console.log("r2, minR2 = " + r2 + ", " + minR2);
+          //console.log("r2, minR2 = " + r2 + ", " + minR2);
           if(r2 > minR2) {
             var r3 = Math.pow(r2,1.5);
             var F = -G*this.mass*ball2.mass/r3;
-            this.u += dx*F/this.mass;
-            ball2.u -= dx*F/ball2.mass;
-            this.v += dy*F/this.mass;
-            ball2.v -= dy*F/ball2.mass;
+            this.u += dt*dx*F/this.mass;
+            ball2.u -= dt*dx*F/ball2.mass;
+            this.v += dt*dy*F/this.mass;
+            ball2.v -= dt*dy*F/ball2.mass;
           } else {
             collidePlanets.push([this, ball2]);
           }          
@@ -81,7 +86,7 @@
         this.v = (this.v*this.mass + ball2.v*ball2.mass)/newMass;
         this.x = (this.x*this.mass + ball2.x*ball2.mass)/newMass;
         this.y = (this.y*this.mass + ball2.y*ball2.mass)/newMass;
-        this.radius = startingRadius*Math.pow(newMass,1./3.)
+        //this.radius = startingRadius*Math.pow(newMass,1./3.)
         this.mass = newMass;
       }
       
@@ -100,11 +105,12 @@
       // update
       var currentTime = (new Date()).getTime()
       var dtms = currentTime - previousTime;
+      //var dt = dtms * tchar;
       var dt = dtms/1000.; // convert from ms to s so speeds is px/sec      
       // clear
       context.clearRect(0, 0, canvas.width, canvas.height);      
       canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 50;
+      canvas.height = window.innerHeight - 150;
         
       context.rect(0, 0, canvas.width, canvas.height);
       context.fillStyle = 'black';
@@ -115,7 +121,7 @@
         planet = planets[i];
         for(var j=i+1; j<nPlanets; j++) {
           planetJ = planets[j];
-          planet.resolveForce(planetJ, forceType);
+          planet.resolveForce(planetJ, forceType, dt);
           
           if(isNaN(planetJ.u)) {
             console.log(i);
@@ -144,6 +150,17 @@
       
       
       //if(planets.length > 0) console.log(planets[0].u);
+      if (preset == 1) {
+        // Solar system
+        context.lineWidth = 1;
+        context.strokeStyle = 'white';
+        for(var i=0; i<planets.length; i++) {
+          context.beginPath();
+          //context.arc(centerX - rWidth[i] - focus[i], centerY - rHeight[i], 2*rWidth[i], 2*rHeight[i]);
+          context.arc(centerX, centerY, rWidth[i], 0, 2 * Math.PI, false);
+          context.stroke();
+        }
+      }
       
       for(var i=0; i<planets.length; i++) {
         planet = planets[i];
@@ -163,12 +180,25 @@
     var startX = 0;
     var startY = 0;
     var velocityScale = 3.; // drag 100 pixels and velocity will be 300 pixel/sec
-    var G = Math.pow(30,3); // pixels^3/(mass*sec^2)
+    var preset = 1; // solar system
+    var G = Math.pow(50,3); // pixels^3/(mass*sec^2)
+    var G = Math.pow(200,3); // pixels^3/(mass*sec^2)
+    //var G = 0.001;
+    var tchar = 0.1;
     var forceType = "gravitational";
     var collidePlanets = [];
     var startingRadius = 6.;
     var startingMass = 1.;
     //var startingMass = 0.1;
+    var earthMassRatio = 3.0e-6;
+    var sunMassRatio = 0.9986;
+    var orbitRScale = 1.5;
+
+    // Zoom scale:
+    var originalScale = 1000;
+    var scale = originalScale;
+    var centerX = 300;
+    var centerY = 300;
     
     canvas.addEventListener('mousedown',mousePressed,false);
     canvas.addEventListener('mouseup',mouseReleased,false);
@@ -176,13 +206,67 @@
     canvas.addEventListener('touchend',touchEnd,false);
     
     var planets = [];
-    sun = new ball(canvas.width/2, canvas.height/2, 0, 0);
-    sun.mass = 1.;
-    sun.fillStyle = 'yellow';
-    //planets.push(sun);
+    var nPlanets = 8;
+
+    var rWidth = [38.7098,152.3679,72.3332,100,1922.941195,3010.366151,958.201720,520.4267]; //100 = 1.00 AU for earth
+    var eccentricity = [0.205630,0.093315,0.0068,0.0167,0.044405586,0.011214269,0.055723219,0.048775]; 
+    var mass = [0.0553,0.107,0.815,1,14.536,17.147,95.159,317.83];
+
+    var rWidth2 = [30., 100.]; //100 = 1.00 AU for earth
+    var eccentricity2 = [0.4, 0.6]; 
+    var mass2 = [1., 1.];
+    //var color = {new Color(200,180,180),new Color(255,80,70),new Color(255,150,0),new Color(40,40,255),new Color(180,120,150),new Color(150,150,255),new Color(180,180,180),new Color(255,190,140)};
+    for (var i=0; i<nPlanets; i++)
+      rWidth[i] *= orbitRScale;
+
+    addSolarSystem();
     
     var startTime = (new Date()).getTime();
     animate(planets, canvas, context, startTime);
+
+    function addSolarSystem() {
+      //var sun = new ball(canvas.width/2, canvas.height/2, 0, 0);
+      var sun = new ball(centerX, centerY, 0, 0, sunMassRatio);
+      //sun.mass = 1.;
+      sun.fillStyle = 'yellow';
+      planets.push(sun);
+      var nPlanets = 8;
+      for (var i=0; i<nPlanets; i++) {
+        var rHeight = rWidth[i]*Math.sqrt(1 - eccentricity[i]*eccentricity[i]);
+        var focus = Math.sqrt(rWidth[i]*rWidth[i] - rHeight*rHeight);
+        var v0 = Math.sqrt(G*sunMassRatio/Math.sqrt(rHeight*rHeight+focus*focus));
+        var planet = new ball(centerX, centerY - rHeight, v0, 0, earthMassRatio*mass[i]);
+        //var planet = new ball(centerX - focus, centerY - rHeight, v0, 0, earthMassRatio);
+        planets.push(planet);
+        //console.log(planet.x + ", " + planet.y);
+      }
+    }
+
+    function addAlternateSolarSystem() {
+      var sun = new ball(centerX, centerY, 0, 0, sunMassRatio);
+      //sun.mass = 1.;
+      sun.fillStyle = 'yellow';
+      planets.push(sun);
+      var nPlanets = rWidth2.length;
+      for (var i=0; i<nPlanets; i++) {
+        var rHeight = rWidth2[i]*Math.sqrt(1 - eccentricity2[i]*eccentricity2[i]);
+        var focus = Math.sqrt(rWidth2[i]*rWidth2[i] - rHeight*rHeight);
+        var v0 = Math.sqrt(G*sunMassRatio/Math.sqrt(rHeight*rHeight+focus*focus));
+        var planet = new ball(centerX, centerY - rHeight, v0, 0, earthMassRatio*mass2[i]);
+        //var planet = new ball(centerX - focus, centerY - rHeight, v0, 0, earthMassRatio);
+        planets.push(planet);
+        //console.log(planet.x + ", " + planet.y);
+      }
+    }
+
+    function addBinaryStarSystem() {
+      var xp = 200;
+      var v0 = velocityScale * 20; //Math.sqrt(G*sunMassRatio/Math.sqrt(rHeight*rHeight+focus*focus));
+      var p1 = new ball(centerX + xp, centerY, 0, v0, 1);
+      var p2 = new ball(centerX - xp, centerY, 0, -v0, 1);
+      planets.push(p1);
+      planets.push(p2);
+    }
     
     function mousePressed (e) {
       startX = e.x;
@@ -205,11 +289,33 @@
     function makePlanet(x,y) {
       u = velocityScale*(x - startX);
       v = velocityScale*(y - startY);
-      planet = new ball(startX, startY, u, v);
+      planet = new ball(startX, startY, u, v, 1);
       //setTimeout(function() { planets.push(planet);}, 1000);
       planets.push(planet);
     }
     
+    function loadPreset(p) {
+      preset = p;
+      while(planets.length > 0) {
+        planets.pop();
+      }
+      switch (p) {
+        case 0:
+          // Empty
+          break;
+        case 1:
+          addSolarSystem();
+          break;
+        case 2:
+          addBinaryStarSystem(); 
+          break;
+        case 3:
+          addAlternateSolarSystem(); 
+          break;
+        default:
+          break;
+      }
+    }
         
     context.beginPath();
     context.strokeStyle = 'white';
@@ -233,4 +339,17 @@ Last updated 9/1/14
 <a href="http://cfb.qqnoobs.com/">Home</a>
 -->
 </div>
+
+<h4 class="divhdr">Options</h4>
+<div class="divinfo" id="divid2">
+  Load preset: <select name="presetDropdown" id="presetDropdown" value="1" onChange="loadPreset(parseInt(document.getElementById('presetDropdown').value))">
+  <option value="0">Empty space</option>
+  <option value="1">Solar system</option>
+  <option value="2">Binary star</option>
+  <option value="3">Alternate solar system (more elliptical orbits)</option>
+  </select>
+<!-- <input id="restartSimButton" type="button" value="Restart simulation with
+     preset " onclick="VoronoiDemo.startGame(parseInt(document.getElementById('voronoiNumberTurns').value));VoronoiDemo.render();"/><input id="voronoiNumberTurns" type="text" value="10" size="3" maxlength="3"/> turns per player. -->
+</div>
+<a href="programs.html">Back to programs</a>
 </html>

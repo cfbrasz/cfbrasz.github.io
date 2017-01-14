@@ -10,10 +10,21 @@
     </style>
   </head>
 
-<title>Delaunay triangulation</title>
+<title>Delaunay triangulation calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<link rel="stylesheet" type="text/css" href="ProgramStyle.css">
+<style type="text/css">
+.canvasWidth {
+  width: 850px;
+}
+</style>
+<div id="divroot" style="width:860px;">
 
+<h1>Delaunay Triangulation calculator</h1>
 <body>
+<div id="canvasParent">
   <canvas id="myCanvas"></canvas>
+</div>
   <script>
     window.requestAnimFrame = (function(callback) {
       return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
@@ -237,7 +248,8 @@
     canvas.addEventListener('mousedown',mousePressed,false);
     canvas.addEventListener('mouseup',mouseReleased,false);
     
-    canvas.width = window.innerWidth;
+    //canvas.width = window.innerWidth;
+    canvas.width = 850;
     canvas.height = window.innerHeight - 50;
     context.clearRect(0, 0, canvas.width, canvas.height);
     var points = [];
@@ -282,8 +294,9 @@
     }
     
     function mousePressed (e) {
-      var startX = e.x;
-      var startY = e.y;
+      var rect = canvas.getBoundingClientRect();
+      var startX = e.clientX - rect.left;
+      var startY = e.clientY - rect.top;
       var newPoint = new point(startX, startY);
       console.log("x,y = " + startX + ", " + startY);
       addPointToTriangulation(newPoint, points, triangulation);
@@ -301,7 +314,7 @@
     
     function drawPolygon(points, canvas, context, triangulation) {
     
-      canvas.width = window.innerWidth;
+      //canvas.width = window.innerWidth;
       canvas.height = window.innerHeight - 50;
       context.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -332,10 +345,11 @@
       
   </script>
 
-
+  <div>
 </body>
 Click to place points. The <a href="https://en.wikipedia.org/wiki/Delaunay_triangulation">Delaunay triangulation</a> is automatically calculated and displayed using an incremental flip algorithm.
 <p>
-<a href="http://cfb.qqnoobs.com/">Home</a>
+<a href="programs.html">Back to programs</a>
+</div>
 
 </html>

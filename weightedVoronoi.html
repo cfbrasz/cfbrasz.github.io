@@ -12,10 +12,22 @@
     </style>
   </head>
 
-<title>Weighted Voronoi diagram</title>
+<title>Weighted Voronoi diagram calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<link rel="stylesheet" type="text/css" href="ProgramStyle.css">
+<style type="text/css">
+.canvasWidth {
+  width: 850px;
+}
+</style>
+<div id="divroot" style="width:860px;">
 
 <body>
+<h1>Weighted Voronoi diagram calculator</h1>
+
+<div id="canvasParent">
   <canvas id="myCanvas"></canvas>
+</div>
   <script>
     window.requestAnimFrame = (function(callback) {
       return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
@@ -565,7 +577,8 @@
     canvas.addEventListener('mousedown',mousePressed,false);
     canvas.addEventListener('mouseup',mouseReleased,false);
     
-    canvas.width = window.innerWidth;
+    //canvas.width = window.innerWidth;
+    canvas.width = 850;
     var heightOffset = 100;
     canvas.height = window.innerHeight - heightOffset;
     context.maxDistance = Math.sqrt(canvas.width*canvas.width + canvas.height*canvas.height);
@@ -1246,14 +1259,28 @@
       console.log(points);
       console.log(removedPoints);
     }
+
+    function getMousePos(canvas, evt) {
+      var rect = canvas.getBoundingClientRect();
+      return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+      };
+    }
+    canvas.addEventListener('mousemove', function(evt) {
+      var mousePos = getMousePos(canvas, evt);
+      console.log('Mouse position: ' + mousePos.x + ',' + mousePos.y);
+    }, false);
     
     function mousePressed (e) {
 		  var weight = parseInt(document.getElementById('newPointWeight').value, 0);
       //var startX = e.x;
       //var startY = e.y;
       // pageX, pageY needed for firefox
-      var startX = e.pageX;
-      var startY = e.pageY;
+      // clientX, Y makes it still correct after scrolling
+      var rect = canvas.getBoundingClientRect();
+      var startX = e.clientX - rect.left;
+      var startY = e.clientY - rect.top;
       var newPoint = new point(startX/scale, startY/scale, weight/scale);
       console.log("x,y = " + startX + ", " + startY);
       points.push(newPoint);
@@ -1277,9 +1304,12 @@
     
     function drawPolygon(points, canvas, context, triangulation) {
     
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - heightOffset;
+      //canvas.width = window.innerWidth;
+      //canvas.height = window.innerHeight - heightOffset;
       context.clearRect(0, 0, canvas.width, canvas.height);
+      context.rect(0, 0, canvas.width, canvas.height);
+      context.strokeStyle = "black";
+      context.stroke();
       
       
       context.beginPath();
@@ -1450,7 +1480,7 @@
       
       
   </script>
-  <hr/>
+  <div>
   <input id="loadTestCaseButton" type="button" value="Load test case:" onclick="loadTestCase(parseInt(document.getElementById('testCaseDropDown').value));"/> 
   <select name="testCaseDropdown" id="testCaseDropDown">
   <option value="0">0</option>
@@ -1504,6 +1534,7 @@ My algorithm is buggy and fails for diagrams with more than a few points. The CG
 
 This runs into problems with isolated sites that may only have one hyperbola segment in the diagram because of a large-weight neighbor, but because of intersections with other small-weight sites, extraneous segments are drawn (and the single desired segment is not -- test case 4 shows an example of this).
 <p>
-<a href="http://cfb.qqnoobs.com/">Home</a>
+<a href="programs.html">Back to programs</a>
+</div>
 
 </html>
