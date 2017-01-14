@@ -1,0 +1,11 @@
+body,button {font-size:15px;margin:0;padding:0}
+/*body {font-family:tahoma,verdana,arial;font-size:13px;margin:0;padding:0}*/
+body > div {margin-left:4px;margin-right:4px;}
+body > div > div {margin:0;border:1px solid #ccc;border-top:0;padding:4px;}
+h1 {margin:0 0 0 0;padding: 4px 5em 4px 4px;font:bold large sans-serif;font-size:24px;background-color:#c9d7f1;font-family: "Lato";}
+h4 {font-size:14px;margin:0.5em 0 0 0;border:0;border-bottom:solid 1px #c9d7f1;padding:2px;background-color:#e5ecf9;}
+h4 > span {cursor:pointer}
+* {font-family: "Lato", sans-serif}
+/*#canvasParent {margin-top:0;margin-bottom:1em;padding:0;border:0}
+#voronoiCode {font:11px monospace;overflow:auto;color:#666;}
+#voronoiCode span {color:green;font-weight:bold;}*/
