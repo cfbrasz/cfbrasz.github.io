@@ -9,12 +9,12 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link rel="stylesheet" type="text/css" href="ProgramStyle.css">
 <!--<div id="divroot" class="canvasWidth">-->
-<div id="divroot" style="width:860px;">
+<div id="divroot" style="width:910px;">
 <!--[if lte IE 8]><script type="text/javascript" src="excanvas/excanvas.compiled.js"></script><![endif]-->
 <script type="text/javascript" src="rhill-voronoi-core.min.js"></script>
 <style type="text/css">
 .canvasWidth {
-  width: 850px;
+  width: 900px;
 }
 </style>
 <script id="script" type="text/javascript">
@@ -41,12 +41,17 @@ var VoronoiDemo = {
 	voronoi: new Voronoi(),
 	sites: [],
   colors: [],
+  images: [], // melons to draw diagrams over
+  nImg: 5,
 	diagram: null,
 	margin: 100,
 	canvas: null,
   // Good values for title screen:
 	//bbox: {xl:0,xr:1150,yt:0,yb:862},		
-	bbox: {xl:0,xr:850,yt:0,yb:550},		
+	//bbox: {xl:0,xr:850,yt:0,yb:550},		
+	//bbox: {xl:0,xr:1800,yt:0,yb:1200},		
+	//bbox: {xl:0,xr:1350,yt:0,yb:900},		
+	bbox: {xl:0,xr:900,yt:0,yb:600},		
   diagLength: 0,
   centerY: 300,
   //centerY: this.bbox.yb/2,
@@ -63,8 +68,10 @@ var VoronoiDemo = {
 	limitingSitePlacement: false,
   limitingTo1D: false,
 	hidingSites: false,
+	hidingSitesAndEdges: false,
   recalculateOnMouseMove: true, 
-  displayMode: 0, 
+  //displayMode: 0, 
+  displayMode: -6,
 
 	normalizeEventCoords: function(target,e) {
 		// http://www.quirksmode.org/js/events_properties.html#position
@@ -216,20 +223,48 @@ var VoronoiDemo = {
 			    me.render();
           //me.saveImage();
 			  }
-			  /*
+			  
 		    var sites = me.sites,
-			    nSites = sites.length;
-		    for (var iCell=0; iCell<nSites; iCell++) {
-				  console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
-			  }*/
+          nSites = sites.length;
+        var xSiteString = "[";
+        var ySiteString = "[";
+		    for (var iCell=0; iCell<nSites-1; iCell++) {
+          xSiteString += sites[iCell].x + ", ";
+          ySiteString += sites[iCell].y + ", ";
+				  //console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
+			  }
+        xSiteString += sites[nSites-1].x + "]";
+        ySiteString += sites[nSites-1].y + "]";
+        console.log("sites.x = " + xSiteString)
+        console.log("sites.y = " + ySiteString)
 			}
 			};
-		this.randomSites(30,true);
+    // Load images (melons)
+    for (var i=0; i<this.nImg; i++) {
+      var melon=new Image();
+      melon.src = "Voronoi/melon"+(i+1)+".jpg"
+      this.images.push(melon);
+    }
+    var melon=new Image();
+    melon.src = "Voronoi/melon4.jpg"
+		var ctx = this.canvas.getContext('2d');
+    var wid=this.canvas.width;
+    var ht=this.canvas.height;
+    var me=this
+    melon.onload = function() {
+      ctx.drawImage(melon,0,0,wid,ht);
+      me.render();
+    }; 
+
+		//this.randomSites(30,true);
     //this.startGame(10);
     var randomColor = this.randColor();
     this.colors.push(randomColor);
     this.clearSites();
-		this.randomSites(30,true);
+		//this.randomSites(30,true);
+    //load preset here
+    this.changeDisplayMode(-6); 
+		//setTimeout(this.render(), 1000);
 		this.render();
 		},
 
@@ -465,6 +500,11 @@ var VoronoiDemo = {
     this.render();
 		},
 
+	hideSitesAndEdges: function(hide) {
+    this.hidingSitesAndEdges = hide;
+    this.render();
+		},
+
 	limitToGrid: function(limit,gridSpacing) {
     this.limitingSitePlacement = limit;
     this.gridSpacing = gridSpacing;
@@ -549,13 +589,51 @@ var VoronoiDemo = {
     ctx.stroke();
   },
 
+  loadPreset: function(presetCase) {
+    this.clearSites();
+    sitesX = [];
+    sitesY = [];
+    if (this.displayMode == -3) {
+      sitesX = [1729, 431, 1064, 792, 913, 928, 795, 946, 1064, 948, 846, 711, 667, 652, 668, 786, 679, 901, 1028, 1076, 1167, 1233, 1163, 1057, 1078, 1180, 1103, 1215, 986, 875, 765, 748, 651, 565, 543, 509, 531, 548, 546, 406, 411, 383, 383, 401, 497, 374, 279, 270, 244, 263, 291, 216, 177, 144, 169, 130, 174, 238, 405, 302, 154, 111, 8, 9, 50, 44, 49, 85, 525, 627, 703, 875, 969, 1054, 1162, 1110, 1223, 1303, 1311, 1255, 1363, 1351, 1299, 1230, 1364, 1434, 1482, 1456, 1430, 1372, 1461, 1431, 1330, 1393, 1476, 1486, 924, 790, 1117, 1247, 12, 42, 309, 431, 644, 793, 947, 808, 654, 528, 652, 438, 359, 292, 165, 215, 76, 164, 22, 3, 284, 389, 518, 868, 1002, 1139, 1165, 1271, 1380, 1396, 1281, 1418, 1492, 1510, 1509, 1626, 1642, 1606, 1576, 1545, 1542, 1561, 1595, 1544, 1536, 1555, 1582, 1605, 1618, 1637, 1652, 1657, 1649, 1694, 1697, 1736, 1720, 1651, 1680, 1736, 1693, 1748, 1709, 1730, 1758, 1775, 1726, 1774, 1763, 1788, 1786, 1729];
+      sitesY = [1098, 275, 580, 694, 701, 601, 572, 476, 580, 813, 835, 851, 747, 608, 505, 447, 375, 375, 359, 462, 397, 516, 603, 681, 799, 770, 938, 914, 946, 963, 942, 1068, 958, 878, 780, 668, 550, 433, 328, 369, 481, 604, 722, 853, 977, 981, 921, 790, 659, 545, 414, 337, 458, 586, 727, 845, 916, 1055, 1108, 1145, 1160, 1044, 920, 794, 682, 586, 474, 367, 1166, 1085, 1176, 1115, 1175, 1057, 1051, 1160, 1158, 1014, 836, 708, 698, 578, 436, 332, 360, 467, 583, 693, 807, 955, 945, 1076, 1135, 1193, 1165, 322, 260, 309, 273, 262, 1102, 276, 269, 275, 243, 203, 152, 99, 148, 101, 50, 175, 100, 178, 231, 119, 146, 62, 66, 231, 11, 23, 8, 11, 59, 157, 40, 121, 212, 111, 14, 15, 181, 111, 16, 22, 111, 228, 318, 413, 507, 655, 781, 863, 999, 1082, 1156, 1057, 960, 836, 662, 544, 419, 344, 263, 186, 59, 1149, 1036, 968, 896, 846, 751, 619, 688, 576, 485, 428, 323, 231, 121, 1098];
+      //scale = 1; // for 1800x1200 canvas
+      scale=0.5;
+    } else if (this.displayMode == -5) {
+      sitesX = [722, 583, 523, 539, 487, 600, 577, 531, 482, 433, 446, 471, 636, 667, 634, 382, 385, 327, 345, 330, 388, 275, 287, 281, 704, 681, 722];
+      sitesY = [41, 90, 104, 52, 65, 47, 20, 4, 28, 49, 101, 132, 83, 46, 1, 41, 90, 68, 7, 105, 135, 50, 3, 101, 9, 69, 41]; 
+      //scale = 2; // for 1800x1200 canvas
+      scale=1;
+    } else if (this.displayMode == -6) {
+      sitesX = [1083, 908, 856, 922, 977, 966, 918, 845, 784, 797, 865, 921, 973, 972, 802, 913, 861, 813, 815, 753, 744, 736, 690, 709, 684, 747, 779, 837, 918, 971, 979, 920, 847, 801, 814, 746, 707, 683, 643, 667, 719, 774, 617, 894, 959, 1021, 1054, 1044, 1029, 1086, 1039, 859, 781, 722, 669, 732, 682, 645, 634, 628, 632, 633, 789, 1038, 1036, 1083];
+      sitesY = [249, 506, 475, 457, 487, 541, 567, 532, 497, 444, 419, 393, 434, 363, 389, 335, 376, 346, 302, 344, 416, 473, 429, 379, 321, 305, 269, 267, 290, 318, 264, 240, 224, 235, 180, 215, 281, 245, 297, 216, 185, 160, 250, 185, 200, 217, 296, 340, 403, 387, 444, 585, 554, 529, 493, 589, 559, 390, 349, 443, 492, 536, 623, 496, 552, 249];
+      //scale = 1; // for 1800x1200 canvas
+      scale=0.5;
+    }
+    nSites = sitesX.length;
+		for (var iCell=0; iCell<nSites; iCell++) {
+      this.addSite(sitesX[iCell]*scale,sitesY[iCell]*scale);
+    }
+  },
+
+  changeDisplayMode: function(displayMode) {
+    this.displayMode = displayMode;
+    if (displayMode <= -3)
+      this.loadPreset(displayMode);
+    this.render();
+  },
+
 	render: function() {
 		var ctx = this.canvas.getContext('2d');
 		// background
 		ctx.globalAlpha = 1;
-		ctx.rect(0,0,this.canvas.width,this.canvas.height);
-		ctx.fillStyle = '#fff';
-		ctx.fill();
+    if (this.displayMode > -3) {
+      ctx.rect(0,0,this.canvas.width,this.canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+    } else {
+      var indexDraw = -3 - this.displayMode;
+      ctx.drawImage(this.images[indexDraw],0,0,this.canvas.width,this.canvas.height);
+    }
 		ctx.strokeStyle = '#888';
 		//ctx.stroke();
 		// voronoi
@@ -682,7 +760,7 @@ var VoronoiDemo = {
     if (this.displayMode >= 4) {
       nHalfPlanes = this.displayMode - 4;
     }
-    if (this.displayMode != 2) {
+    if (this.displayMode != 2 && !this.hidingSitesAndEdges) {
       var edges = this.diagram.edges,
         nEdges = edges.length,
                lineWidth = 2,
@@ -778,7 +856,7 @@ var VoronoiDemo = {
 		ctx.strokeStyle='#000';
 		// draw sites
     var siteRadius = 4;
-		if (!this.hidingSites) {
+		if (!this.hidingSites && !this.hidingSitesAndEdges) {
 		  var site;
 		  if (this.displayMode < 3) ctx.beginPath();
 		  ctx.fillStyle = '#000';
@@ -897,7 +975,7 @@ if (srcElem) {
     }
 })();
 </script>
-  Visualization mode: <select name="displayDropdown" id="displayDropdown" value="3" onChange="VoronoiDemo.displayMode = parseInt(document.getElementById('displayDropdown').value); VoronoiDemo.render()">
+  Visualization mode: <select name="displayDropdown" id="displayDropdown" value="3" onChange="VoronoiDemo.changeDisplayMode(parseInt(document.getElementById('displayDropdown').value));">
   <option value="0">Normal</option>
   <option value="1">No fill</option>
   <option value="2">Just sites</option>
@@ -910,10 +988,16 @@ if (srcElem) {
   <option value="100">All half-planes</option>
   <option value="-1">Facility location</option>
   <option value="-2">Color gradient</option>
+  <option value="-3">Melon 1</option>
+  <option value="-4">Melon 2</option>
+  <option value="-5">Melon 3</option>
+  <option value="-6">Melon 4</option>
+  <option value="-7">Melon 5</option>
   </select>
   <p class="noMargins">Various visualization modes for interactively made <a href="https://en.wikipedia.org/wiki/Voronoi_diagram">Voronoi diagrams</a>. Created to help prepare a <a href="talks/VoronoiGames.pdf">talk on Voronoi games</a> I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a>.
 <!-- <p class="noMargins">Take turns placing points in the plane to maximize the area of your cells in the resulting <a href="https://en.wikipedia.org/wiki/Voronoi_diagram">Voronoi diagram</a>. The player with a greater area after a set number of turns wins. -->
 </p>
+<p class="noMargins">Choose one of the melon options to see or create a Voronoi diagram over a photograph of a melon.</p>
 <p class="noMargins">Base code taken from <a href="http://www.raymondhill.net/voronoi/rhill-voronoi.html">http://www.raymondhill.net/voronoi/rhill-voronoi.html</a><ul style="margin-top:0">
 </ul></p>
 
@@ -924,6 +1008,7 @@ if (srcElem) {
 </div>
 <h4 class="divhdr">Options</h4>
 <div class="divinfo" id="voronoiGenerator3">
+<input id="hideSitesAndEdges" type="checkbox" value="hidingSitesAndEdges" onclick="VoronoiDemo.hideSitesAndEdges(document.getElementById('hideSitesAndEdges').checked)"/>Hide sites and edges.
 <input id="hideSites" type="checkbox" value="hidingSites" onclick="VoronoiDemo.hideSites(document.getElementById('hideSites').checked)"/>Hide sites.
 <input id="limitToGrid" type="checkbox" value="grid" onclick="VoronoiDemo.limitToGrid(document.getElementById('limitToGrid').checked, parseInt(document.getElementById('voronoiGridSpacing').value))"/>Limit sites to a grid with a spacing of <input id="voronoiGridSpacing" type="text" value="50" size="3" maxlength="3"/> pixels between points
 <br/>
