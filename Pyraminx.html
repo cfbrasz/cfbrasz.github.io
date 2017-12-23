@@ -1,0 +1,478 @@
+<html>
+  <head>
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+    </style>
+  </head>
+
+<title>Pyraminx puzzle</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<link rel="stylesheet" type="text/css" href="ProgramStyle.css">
+<style type="text/css">
+.canvasWidth {
+  width: 850px;
+}
+</style>
+<div id="divroot" style="width:860px;">
+
+<h1>Pyraminx puzzle</h1>
+<body>
+<div id="canvasParent">
+  <canvas id="myCanvas"></canvas>
+</div>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+         
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    
+    var linewidth = 2;
+    
+    var startX = 0;
+    var startY = 0;
+
+    var shiftPressed = 0;
+    var pPressed = false;
+    var firstCommand = -1;
+
+    var wasdKeys = [119, 97, 115, 100, 87, 65, 83, 68];
+    var wasdStr = ["w", "a", "s", "d", "W", "A", "S", "D"];
+    // wasd: 119, 97, 115, 100
+    // WASD: 87, 65, 83, 68
+    //console.log(wasdKeys.includes(88));
+    //console.log(wasdKeys.indexOf(88));
+    
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    document.addEventListener('keypress',keyPressed);
+    document.addEventListener('keydown',keyDown);
+    document.addEventListener('keyup',keyUp,);
+    
+    //canvas.width = window.innerWidth;
+    canvas.width = 850;
+    canvas.height = window.innerHeight - 50;
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    var xCenter = canvas.width/2;
+    var yCenter = canvas.height/5;
+    var Ldiag = 200;
+    var yBottom = yCenter+Ldiag;
+    var theta=30*Math.PI/180;
+    var dxDiag = Ldiag*Math.cos(theta);
+    var dyDiag = Ldiag*Math.sin(theta);
+    var separation = canvas.height/2;
+
+    var theta2=60*Math.PI/180;
+    var Ledge = 2*Ldiag*Math.cos(theta);
+    var dx = Ledge*Math.cos(theta2)/3;
+    var dy = Ledge*Math.sin(theta2)/3;
+
+    // Initialization
+    var A = new Array(9);
+    var B = new Array(9);
+    var C = new Array(9);
+    var D = new Array(9);
+    A.fill(0);
+    B.fill(1);
+    C.fill(2);
+    D.fill(3);
+
+    drawTetrahedron(canvas, context);
+    debug = 1;
+    if (debug) {
+      D.fill(0);
+      A.fill(3);
+      B.fill(1);
+      C.fill(2);
+      B[3] = 2;
+      A[1] = 1;
+      A[6] = 1;
+      C[3] = 1;
+      B[1] = 3;
+      B[6] = 3;
+    }
+    drawAllSides(canvas, context, A, B, C, D);
+
+    labelSides(canvas, context);
+    
+    function keyDown (e) {
+      //console.log(e.keyCode);
+      if(e.keyCode == 16)
+        shiftPressed = 1;
+    }
+
+    function keyUp (e) {
+      //console.log(e.keyCode);
+      if(e.keyCode == 16)
+        shiftPressed = 0;
+    }
+
+    function rotateAction(A, B, C, D, keyCode) {
+      // wasd: 119, 97, 115, 100
+      // WASD: 87, 65, 83, 68
+
+      if(keyCode == 119)
+        // W rotates top 2 rows CW (D face stays fixed)
+        rotateTetrahedron(A,B,C,D,3);
+      else if(keyCode == 87) {
+        rotateTetrahedron(A,B,C,D,3);
+        rotateTetrahedron(A,B,C,D,3);
+      }
+      else if(keyCode == 97)
+        // A rotates ABD (C face stays fixed)
+        rotateTetrahedron(A,B,C,D,2);
+      else if(keyCode == 65) {
+        rotateTetrahedron(A,B,C,D,2);
+        rotateTetrahedron(A,B,C,D,2);
+      }
+      else if(keyCode == 115)
+        // S rotates ACD (B face stays fixed)
+        rotateTetrahedron(A,B,C,D,1);
+      else if(keyCode == 83) {
+        rotateTetrahedron(A,B,C,D,1);
+        rotateTetrahedron(A,B,C,D,1);
+      }
+      else if(keyCode == 100)
+        // D rotates BCD (A face stays fixed)
+        rotateTetrahedron(A,B,C,D,0);
+      else if(keyCode == 68) {
+        rotateTetrahedron(A,B,C,D,0);
+        rotateTetrahedron(A,B,C,D,0);
+      }
+
+      // TFGH: 116, 102, 103, 104
+      if(keyCode == 116)
+        rotateTip(A,B,C,D,3);
+      if(keyCode == 102)
+        rotateTip(A,B,C,D,2);
+      if(keyCode == 103)
+        rotateTip(A,B,C,D,1);
+      if(keyCode == 104)
+        rotateTip(A,B,C,D,0);
+    }
+
+    function rotateCombo(A, B, C, D, firstCommand, secondCommand) {
+      // Rotations: R1 R2 R1' R2' (R1' and R2' are reverse)
+      rotateAction(A, B, C, D, firstCommand); 
+      rotateAction(A, B, C, D, secondCommand); 
+
+      rotateAction(A, B, C, D, firstCommand); 
+      rotateAction(A, B, C, D, firstCommand); 
+      rotateAction(A, B, C, D, secondCommand); 
+      rotateAction(A, B, C, D, secondCommand); 
+    }
+
+    function keyPressed (e) {
+      //console.log(e.keyCode);
+
+      if(e.keyCode == 112) {
+        pPressed = !pPressed;
+        if(pPressed) console.log("Combo mode on");
+        else console.log("Combo mode off");
+      }
+
+      if(pPressed) {
+
+        moveIndex = wasdKeys.indexOf(e.keyCode);
+        if(moveIndex > -1) {
+          if(firstCommand < 0) firstCommand = e.keyCode;
+          else {
+            rotateCombo(A,B,C,D, firstCommand, e.keyCode);
+            console.log(wasdStr[wasdKeys.indexOf(firstCommand)] + ", " + wasdStr[moveIndex]);
+            firstCommand = -1; 
+          }
+        }
+      } else {
+        rotateAction(A, B, C, D, e.keyCode); 
+      }
+
+      requestAnimFrame(function() {
+        drawAllSides(canvas, context, A, B, C, D);
+      });
+    }
+    
+    function mousePressed (e) {
+      var rect = canvas.getBoundingClientRect();
+      var startX = e.clientX - rect.left;
+      var startY = e.clientY - rect.top;
+      //var newPoint = new point(startX, startY);
+      console.log("x,y = " + startX + ", " + startY);
+    }
+    
+    function mouseReleased (e) {
+    }
+
+    function drawAllSides(canvas, context, A, B, C, D) {
+      drawSide(canvas, context, A, 0);
+      drawSide(canvas, context, B, 1);
+      drawSide(canvas, context, C, 2);
+      drawSide(canvas, context, D, 3);
+    }
+
+    function labelSides(canvas, context) {
+      context.fillStyle = 'black';
+      context.font = "25px Arial";
+      xLabel = 0;
+      yLabel = -Ldiag*0.55;
+      context.textAlign = "center";
+      context.fillText("B", xCenter+xLabel, yCenter+yLabel);
+      
+      yLabel = -Ldiag*0.65;
+      thRotate = 120*Math.PI/180;
+      [xLabel,yLabel] = rotateCCW(xLabel, yLabel, thRotate);
+      context.fillText("A", xCenter+xLabel, yCenter+yLabel);
+      context.fillText("D", xCenter+xLabel, yCenter+separation+yLabel);
+
+      [xLabel,yLabel] = rotateCCW(xLabel, yLabel, thRotate);
+      context.fillText("C", xCenter+xLabel, yCenter+yLabel);
+    }
+    
+    function drawTetrahedron(canvas, context) {
+      //canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight - 50;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.beginPath();
+
+      context.lineWidth = linewidth;
+      context.strokeStyle = 'black';
+      context.lineCap = "round";
+
+	    //for(i=0; i<np-1; i++) {
+	      //ni = triangulation[i];
+	      //for(j=i+1; j<np; j++) {
+      context.moveTo(xCenter, yCenter);
+      context.lineTo(xCenter, yBottom);
+      context.lineTo(xCenter+dxDiag, yCenter-dyDiag);
+      context.closePath();
+      context.stroke();
+      context.moveTo(xCenter, yCenter);
+      context.lineTo(xCenter-dxDiag, yCenter-dyDiag);
+      context.lineTo(xCenter+dxDiag, yCenter-dyDiag);
+      context.closePath();
+      context.stroke();
+      context.moveTo(xCenter, yCenter);
+      context.lineTo(xCenter, yBottom);
+      context.lineTo(xCenter-dxDiag, yCenter-dyDiag);
+      context.closePath();
+      context.stroke();
+
+      // Face D (bottom of tetrahedron):
+      context.moveTo(xCenter+dxDiag, yCenter+separation-dyDiag);
+      context.lineTo(xCenter-dxDiag, yCenter+separation-dyDiag);
+      context.lineTo(xCenter, yBottom+separation);
+      context.closePath();
+      context.stroke();
+    }
+
+    function int2color(val) {
+      switch(val) {
+        case 0:
+          return 'red';
+          break;
+        case 1:
+          return 'green';
+          break;
+        case 2:
+          return 'blue';
+          break;
+        case 3:
+          return 'yellow';
+          break;
+        default:
+          console.log('Not a valid value for color picker');
+      }
+    }
+
+    function rotateCCW(x, y, th) {
+      // Remember that y increases down on canvas
+      xp = x*Math.cos(th) + y*Math.sin(th);
+      yp = -x*Math.sin(th) + y*Math.cos(th);
+      return [xp, yp];
+    }
+
+    function rotateTip(A, B, C, D, fixedSide) {
+      // CW rotation of tip
+      if(fixedSide == 3) {
+        Bt = A[0];
+        Ct = B[0];
+        At = C[0];
+        A[0] = At;
+        B[0] = Bt;
+        C[0] = Ct;
+      } else if(fixedSide == 0) {
+        Bt = C[8];
+        Dt = B[4];
+        Ct = D[4];
+        B[4] = Bt;
+        D[4] = Dt;
+        C[8] = Ct;
+      } else if(fixedSide == 1) {
+        Ct = A[8];
+        Dt = C[4];
+        At = D[0];
+        C[4] = Ct;
+        D[0] = Dt;
+        A[8] = At;
+      } else if(fixedSide == 2) {
+        At = B[8];
+        Dt = A[4];
+        Bt = D[8];
+        A[4] = At;
+        B[8] = Bt;
+        D[8] = Dt;
+      }
+    }
+
+    function rotateTetrahedron(A, B, C, D, fixedSide) {
+      // CW rotation
+      At = A.slice()
+      Bt = B.slice()
+      Ct = C.slice()
+      Dt = D.slice()
+      if(fixedSide == 3) {
+        for(i=0; i<4; i++) {
+          Bt[i] = A[i];
+          Ct[i] = B[i];
+          At[i] = C[i];
+        }
+      } 
+      else if(fixedSide == 0) {
+        // A
+        Dt[1] = B[6];
+        Dt[6] = B[1];
+        Dt[5] = B[5];
+        Dt[4] = B[4];
+        Ct[3] = D[1];
+        Ct[6] = D[6];
+        Ct[7] = D[5];
+        Ct[8] = D[4];
+        Bt[6] = C[3];
+        Bt[1] = C[6];
+        Bt[5] = C[7];
+        Bt[4] = C[8];
+      }
+      else if(fixedSide == 1) {
+        // B
+        Ct[4] = A[8];
+        Ct[6] = A[3];
+        Ct[5] = A[7];
+        Ct[1] = A[6];
+        Dt[0] = C[4];
+        Dt[3] = C[6];
+        Dt[2] = C[5];
+        Dt[1] = C[1];
+        At[8] = D[0];
+        At[3] = D[3];
+        At[7] = D[2];
+        At[6] = D[1];
+      }
+      else if(fixedSide == 2) {
+        // C
+        Dt[8] = A[4];
+        Dt[6] = A[6];
+        Dt[7] = A[5];
+        Dt[3] = A[1];
+        Bt[8] = D[8];
+        Bt[3] = D[6];
+        Bt[7] = D[7];
+        Bt[6] = D[3];
+        At[4] = B[8];
+        At[6] = B[3];
+        At[5] = B[7];
+        At[1] = B[6];
+      }
+
+      for(i=0; i<9; i++) {
+        A[i] = At[i];
+        B[i] = Bt[i];
+        C[i] = Ct[i];
+        D[i] = Dt[i];
+      }
+    }
+
+    function drawSide(canvas, context, values, side) {
+      // Fill triangles on a given side (0, 1, 2, 3 for ABCD), where values specify the color (0123=RGBY)
+      nTri=9;
+      context.lineWidth = linewidth;
+      context.strokeStyle = 'black';
+
+      // x1, y1: top or bottom (pointy end) of each triangle when viewed with 1 at the top
+      x1 = [0, -dx, 0, dx, -2*dx, -dx, 0, dx, 2*dx];
+      y1 = [0, dy, 2*dy, dy, 2*dy, 3*dy, 2*dy, 3*dy, 2*dy];
+      // x2, y2: cycle CCW
+      x2 = [-dx, -2*dx, dx, 0, -3*dx, 0, -dx, 2*dx, dx];
+      y2 = [dy, 2*dy, dy, 2*dy, 3*dy, 2*dy, 3*dy, 2*dy, 3*dy];
+      x3 = [dx, 0, -dx, 2*dx, -dx, -2*dx, dx, 0, 3*dx];
+      y3 = [dy, 2*dy, dy, 2*dy, 3*dy, 2*dy, 3*dy, 2*dy, 3*dy];
+      // y3 = y2
+
+      if(side == 3) {
+        for(i=0; i<x1.length; i++) {
+          x1[i] *= -1;
+          x2[i] *= -1;
+          x3[i] *= -1;
+          y1[i] *= -1;
+          y2[i] *= -1;
+          y3[i] *= -1;
+        }
+
+        x0 = xCenter;
+        y0 = yBottom + separation;
+      } else {
+        x0 = xCenter;
+        y0 = yCenter;
+        // Compress by 1/3 in y direction
+        for(i=0; i<x1.length; i++) {
+          y1[i] *= 1/3;
+          y2[i] *= 1/3;
+          y3[i] *= 1/3;
+        }
+        // Side A: rotate CCW 300 degrees (CW 60)
+        if(side == 0)
+          thRotate=300;
+        else if(side == 1)
+          thRotate=180;
+        else if(side == 2)
+          thRotate=60;
+        thRotate *= Math.PI/180;
+
+        for(i=0; i<x1.length; i++) {
+          [x1[i],y1[i]] = rotateCCW(x1[i], y1[i], thRotate);
+          [x2[i],y2[i]] = rotateCCW(x2[i], y2[i], thRotate);
+          [x3[i],y3[i]] = rotateCCW(x3[i], y3[i], thRotate);
+        }
+      }
+
+	    for(i=0; i<nTri; i++) {
+        context.beginPath();
+        context.moveTo(x0+x1[i], y0+y1[i]);
+        context.lineTo(x0+x2[i], y0+y2[i]);
+        context.lineTo(x0+x3[i], y0+y3[i]);
+        context.closePath();
+        context.stroke();
+        context.fillStyle = int2color(values[i]);
+        context.fill();
+      }
+    }
+
+      
+  </script>
+
+  <div>
+</body>
+Solve the <a href="https://en.wikipedia.org/wiki/Pyraminx">Pyraminx</a> puzzle. Use w,a,s,d to rotate each corner clockwise (hold shift to rotate counter-clockwise). Use t,f,g,h to rotate just the tips. Press p to toggle into combo mode where you can enter two commands from w,a,s,d,W,A,S,D. This will automatically run R1, R2, R1', R2' (R1' is opposite direction of R1).
+<p>
+<a href="programs.html">Back to programs</a>
+</div>
+
+</html>
