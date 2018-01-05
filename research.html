@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html>
-<title>Programming projects</title>
+<title>Research</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
@@ -61,11 +61,79 @@ th {
 <div class="w3-row-padding w3-padding-64 w3-container">
   <div class="w3-content">
       <h1>Research</h1>
-      <h5>My research focuses on small-scale flows involving liquid jets, drops, bubbles, and films relevant to industry and environmental processes.</h5>
-      <h5>(Under construction.)</h5>
+      <h5>My research focuses on interfacial fluid flows at small scales (bubbles, droplets, jets, and thin films) and their connection to larger questions in industry and the environment. I use a mix of experiments (high-speed imaging) and numerical simulations (using the open-source solvers <a href="http://gfs.sourceforge.net/wiki/index.php/Main_Page">Gerris</a> and <a href="http://basilisk.fr">Basilisk</a>), and try to rationalize observations with theoretical analysis. Some projects I am working on or have worked on in the past are listed below.</h5>
   </div>
 </div>
 
+<div class="w3-row-padding w3-container">
+  <div class="w3-content">
+    <div class="w3-twothird">
+      <h3>Bursting bubbles and sea spray aerosol</h3>
+      <h5>When wind speeds over the ocean are large enough, waves break into foamy whitecaps, entraining bubbles under water. They then rise back to the surface, and between 10<sup>18</sup> and 10<sup>20</sup> bubbles pop at the surface of the oceans every second, ejecting droplets that can carry sea salts and organic species into the atmosphere. These sea spray aerosol (SSA) particles affect climate, both directly by scattering radiation and indirectly by acting as cloud condensation nuclei, and are parameterized in climate models empirically as a function of wind speed. However, uncertainties are large, and the extent to which these fluxes depend on other variables like sea surface temperature remains unclear.</h5>
+      <h5>
+      Bursting bubbles eject droplets via two mechanisms: (i) the bubble cap film itself fragments into film drops (top video), and (ii) the bubble cavity inverts into a jet that breaks up into jet drops (bottom videos).
+    </h5>
+    <h5>
+      For jet drops from the smallest bubbles, we reduced the problem to a single dimensionless parameter (ratio of bubble radius to a viscous-capillary length scale). Through high-speed imaging experiments and numerical simulations, we found a non-monotonic relationship between the radius of the top jet drop and this dimensionless bubble radius (Brasz et al., submitted to PNAS). This relationship allows us to incorporate the effects of temperature and predict a significantly smaller minimum jet drop size than previously assumed.
+      </h5>
+<!--We have performed laboratory experiments and numerical simulations of
+      bursting bubbles in a quiescent liquid to illuminate the underlying dynamics responsible for the size, velocity, and number of drops ejected, and coupling these results with bubble size distributions produced by breaking waves could eventually lead to more accurate and physical parameterizations of SSA production. -->
+
+    </div>
+
+    <!-- https://www.sohamkamani.com/blog/2016/04/09/stop-using-gifs/ -->
+    <div class="w3-third">
+      <video autoplay loop width="100%">
+        <source src="movies/filmDrops12front.mp4" type="video/mp4">
+        <source src="movies/filmDrops12front.webm" type="video/webm">
+      </video>
+      <p>
+      <video autoplay loop width="100%">
+        <source src="movies/test14-bubbleLine.mp4" type="video/mp4">
+        <source src="movies/test14-bubbleLine.webm" type="video/webm">
+      </video>
+      <video autoplay loop width="100%">
+        <source src="movies/aboveAndBelowRun3.mp4" type="video/mp4">
+        <source src="movies/aboveAndBelowRun3.webm" type="video/webm">
+      </video>
+      <!--<p>
+      <video autoplay loop width="400" height="240">
+      <video autoplay loop>
+      <img src="movies/filmDrops12front.gif" style="width:100%"/>
+      <source src="movies/test14-bubbleLine.mp4" type="video/mp4">
+      <img src="movies/test14-bubbleLine.gif" style="width:100%"/>
+-->
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<div class="w3-row-padding w3-padding-64 w3-container">
+  <div class="w3-content">
+    <div class="w3-third">
+      <img src="imagesOther/biofouling_bubbles_resize.png" style="width:95%"/>
+      Adapted from <a href="https://doi.org/10.1080/08927014.2017.1359574"</a>Menesses et al. 2017, <i>Biofouling</i></a>
+      <p>
+      <video autoplay loop width="47%">
+        <source src="movies/gold67.5deg_150mLpMin.mp4" type="video/mp4">
+        <source src="movies/gold67.5deg_150mLpMin.webm" type="video/webm">
+      </video>
+      <p>
+    </div>
+    <div class="w3-twothird">
+      <h3>Preventing biofouling with bubbles</h3>
+      <h5> Biofouling, or the accumulation of marine life on submerged surfaces, is a significant problem for the navy and shipping industries, increasing drag and fuel expenditure. 
+One environmentally friendly method proposed for preventing biofouling is the continuous injection of a curtain of bubbles along the bottom of the ship, allowing buoyancy to push bubbles up the surface. 
+<p>
+Our team has tested the efficacy of bubbling on preventing biofouling on panels submerged underwater, resulting in V-shaped clean patterns above the nozzle (top images). 
+To learn what sets the shape of this V region, we are examining the dependence of bubble trajectories on nozzle size, flow rate, and angle. This knowledge could inform future designs of bubble curtain rigs, suggesting optimal spacings and required flow rates.
+<p>
+Computationally, I am working on simulations of individual bubbles rising against an inclined wall to learn how the shear stress on the wall depends on the bubble size, wall angle, and frequency of release. The shear stress can be compared to critical stresses required to remove various types of biofouling.
+      </h5>
+    </div>
+  </div>
+</div>
 
 
 <!-- Footer -->
