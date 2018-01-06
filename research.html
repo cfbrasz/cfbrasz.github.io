@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
-<title>Research</title>
+<title>Research | Frederik Brasz</title>
+<meta name="description" content="Interfacial fluid mechanics research">
+<meta name="keywords" content="fluid mechanics, bubbles, drops, jets, research">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="http://www.w3schools.com/lib/w3.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <style>
-body,h1,h2,h3,h4,h5,h6 {font-family: "Lato", sans-serif}
-.w3-navbar,h1,button {font-family: "Montserrat", sans-serif}
+body,h1,h2,h3,h4,h5,h6,.w3-navbar,h1,button {font-family: "Lato", sans-serif}
 .fa-coffee {font-size:200px}
 header {
   background-image: url("ripplesCrop.JPG");
@@ -20,17 +21,17 @@ table {
   width: 100%;
   border-collapse: collapse;
   border: None;
+  margin-top: -22px;
+  font-family: "Lato", sans-serif;
 }
-tr {
-  border: None;
-}
-tr:nth-child(even) {
+/*tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 th {
     background-color: #204e87;
     color: white;
 }
+    */
 </style>
 <body>
 
@@ -117,14 +118,27 @@ th {
 <div class="w3-row-padding w3-padding-64 w3-container">
   <div class="w3-content">
     <div class="w3-third w3-center">
-      <img src="imagesOther/biofouling_bubbles_resize.png" style="width:95%"/>
+      <img src="imagesOther/biofouling_bubbles_resize.png" style="width:95%" alt="Nozzle setup on test panel and biofouling growth after 5 weeks of bubbling"/>
       Adapted from <a href="https://doi.org/10.1080/08927014.2017.1359574"</a>Menesses et al. 2017, <i>Biofouling</i></a>
       <p>
+      <video autoplay loop muted playsinline width="47%">
+        <source src="movies/gold67.5deg_150mLpMin_front.mp4" type="video/mp4">
+        <source src="movies/gold67.5deg_150mLpMin_front.webm" type="video/webm">
+      </video>
+      <!--
+      Changes size of video
+      <figure>
+      <figcaption>Front view</figcaption>
+      </figure>
+      -->
       <video autoplay loop muted playsinline width="47%">
         <source src="movies/gold67.5deg_150mLpMin.mp4" type="video/mp4">
         <source src="movies/gold67.5deg_150mLpMin.webm" type="video/webm">
       </video>
-      <p>
+      <!-- Need margin-top=-22 px to remove the space between these -->
+		<table Border=0 CELLPADDING=0>
+		<TR><td width="50%">Front view</Td><Td width="50%">Side view</Td></TR>
+    </table>
     </div>
     <div class="w3-twothird">
       <h3>Preventing biofouling with bubbles</h3>
@@ -132,7 +146,7 @@ th {
 One environmentally friendly method proposed for preventing biofouling is the continuous injection of a curtain of bubbles along the bottom of the ship, allowing buoyancy to push bubbles up the surface. 
 <p>
 Our team has tested the efficacy of bubbling on preventing biofouling on panels submerged underwater, resulting in V-shaped clean patterns above the nozzle (top images). 
-To learn what sets the shape of this V region, we are examining the dependence of bubble trajectories on nozzle size, flow rate, and angle. This knowledge could inform future designs of bubble curtain rigs, suggesting optimal spacings and required flow rates.
+To learn what sets the shape of this V region, we are examining the dependence of bubble trajectories (bottom videos) on nozzle size, flow rate, and angle. This knowledge could inform future designs of bubble rigs, suggesting optimal spacings and required flow rates.
 <p>
 Computationally, I am working on simulations of individual bubbles rising against an inclined wall to learn how the shear stress on the wall depends on the bubble size, wall angle, and frequency of release. The shear stress can be compared to critical stresses required to remove various types of biofouling.
       </h5>
