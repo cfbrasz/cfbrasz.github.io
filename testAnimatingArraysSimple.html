@@ -1,0 +1,209 @@
+<html>
+<div class="content">
+
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">  -->
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+      /* div.content { width: 320px } */
+    </style>
+  </head>
+
+<title>Array animation tests</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<style type="text/css">
+* {font-family: "Lato", sans-serif}
+</style>
+
+<body>
+  <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
+  <canvas id="myCanvas" ></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+
+    function animate(canvas, context) {
+      // Update array
+      shiftColors();
+
+
+      //console.log('Drawing new frame');
+      //context.clearRect(0, 0, canvas.width, canvas.height);      
+        
+      //context.rect(0, 0, canvas.width, canvas.height);
+      //context.fillStyle = 'black';
+      //context.fill();
+
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          var r=f[j][i][0];
+          var g=f[j][i][1];
+          var b=f[j][i][2];
+          context.fillStyle = rgb(r,g,b);
+          context.fillRect(i*res, j*res, res, res);
+          //context.rect(i*res, j*res, res, res);
+          //context.stroke();
+
+          //console.log(j + ", " + i + ", " + rgb(r,g,b));
+          //if (j == 2 && i == 1) {
+            //console.log(rgb(r,g,b));
+          //}
+        }
+      } 
+      //console.log(f[2][1][0]);
+
+      // request new frame
+      
+      if (!paused) {
+        requestAnimFrame(function() {
+          animate(canvas, context);
+        });
+      }
+      
+    }
+
+    function rgb(r, g, b){
+      r = Math.floor(255*r);
+      g = Math.floor(255*g);
+      b = Math.floor(255*b);
+      return ["rgb(",r,",",g,",",b,")"].join("");
+    }
+
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var paused = false;
+    var w = 300;
+    var h = 400;
+    var res = 2;
+    var nw = w/res;
+    var nh = h/res;
+    var f = new Array(nh);
+    var ft = new Array(nh);
+    for (var j=0; j<nh; j++) {
+      f[j] = new Array(nw);
+      ft[j] = new Array(nw);
+      for (var i=0; i<nw; i++) {
+        f[j][i] = new Array(3);
+        ft[j][i] = new Array(3);
+      }
+    }
+
+    initializeF();
+
+
+    var imgInit=new Image();
+    imgInit.src = "images/10.jpg"
+
+    animate(canvas, context);
+
+    canvas.width = w;
+    canvas.height = h;
+
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    canvas.addEventListener('touchstart',mousePressed,false);
+    canvas.addEventListener('touchend',mouseReleased,false);
+    document.addEventListener('keypress',keyPressed);
+
+    function initializeF() {
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          f[j][i][0] = j/(nh-1);
+          f[j][i][1] = 0.5;
+          f[j][i][2] = i/(nw-1);
+        }
+      }
+    }
+
+    function shiftColors() {
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          jp = j-1;
+          if (j==0) jp=nh-1;
+          ip = i-1;
+          if (i==0) ip=nw-1;
+          ft[j][i] = f[jp][ip];
+        }
+      }
+      
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          f[j][i]=ft[j][i];
+        }
+      }
+      //console.log(f[0][0]);
+    }
+  
+
+    function mousePressed (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function mouseReleased (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function keyPressed (e) {
+      console.log(e.keyCode);
+
+      // Pause with p
+      if(e.keyCode == 112) {
+        paused = !paused;
+        
+        if(paused) console.log("Paused");
+        else {
+          console.log("Unpaused");
+          animate(canvas, context);
+        }
+      }
+    }
+
+    function reset(r) {
+      res = r;
+      nw = w/res;
+      nh = h/res;
+      f = new Array(nh);
+      ft = new Array(nh);
+      for (var j=0; j<nh; j++) {
+        f[j] = new Array(nw);
+        ft[j] = new Array(nw);
+        for (var i=0; i<nw; i++) {
+          f[j][i] = new Array(3);
+          ft[j][i] = new Array(3);
+        }
+      }
+
+      initializeF();
+      animate(canvas, context);
+    }
+
+
+
+  </script>
+
+
+</body>
+<p>
+Tests of animating 2D time-varying arrays as a function of resolution.
+
+<p>
+
+<input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),false);"/> with a cell side length of <input id="cellLength" type="text" value="10" size="3" maxlength="3"/> pixels (note that the canvas size is 300 by 400 pixels).
+<p>
+Press 'p' to pause/unpause.
+
+
+</div>
+</html>

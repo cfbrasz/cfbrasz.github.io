@@ -1,0 +1,292 @@
+<html>
+<div class="content">
+
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">  -->
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+      /* div.content { width: 320px } */
+    </style>
+  </head>
+
+<title>Array animation tests</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<style type="text/css">
+* {font-family: "Lato", sans-serif}
+</style>
+
+<body>
+  <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
+  <canvas id="myCanvas" ></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+
+    function animate(canvas, context) {
+      // Update array
+
+
+      if (1) {//t == 0) {
+        advectTracer();
+      }
+      t += dt;
+
+      //console.log('Drawing new frame');
+      //context.clearRect(0, 0, canvas.width, canvas.height);      
+        
+      //context.rect(0, 0, canvas.width, canvas.height);
+      //context.fillStyle = 'black';
+      //context.fill();
+
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          var r=f[j][i][0];
+          var g=f[j][i][1];
+          var b=f[j][i][2];
+          context.fillStyle = rgb(r,g,b);
+          context.fillRect(i*res, j*res, res, res);
+          //context.rect(i*res, j*res, res, res);
+          //context.stroke();
+
+        }
+      } 
+
+      // request new frame
+      
+      if (!paused) {
+        requestAnimFrame(function() {
+          animate(canvas, context);
+        });
+      }
+      
+    }
+
+    function rgb(r, g, b){
+      r = Math.floor(255*r);
+      g = Math.floor(255*g);
+      b = Math.floor(255*b);
+      return ["rgb(",r,",",g,",",b,")"].join("");
+    }
+
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var paused = false;
+    var w = 400;
+    var h = 400;
+    //var res = 2;
+    var res = 5;
+    var nw = w/res;
+    var nh = h/res;
+    var dt = 0.05;
+    var t = 0.0;
+    var f = new Array(nh);
+    var ft = new Array(nh);
+    var u = new Array(nh);
+    var v = new Array(nh);
+    var initialColor = 1;
+    // 0: red varies in y direction, blue varies in x direction
+    // 1: Todo
+    for (var j=0; j<nh; j++) {
+      f[j] = new Array(nw);
+      ft[j] = new Array(nw);
+      u[j] = new Array(nw);
+      v[j] = new Array(nw);
+      for (var i=0; i<nw; i++) {
+        f[j][i] = new Array(3);
+        ft[j][i] = new Array(3);
+      }
+    }
+
+    initializeF(initialColor);
+    initializeVelocity();
+
+
+    var imgInit=new Image();
+    imgInit.src = "images/10.jpg"
+
+    animate(canvas, context);
+
+    canvas.width = w;
+    canvas.height = h;
+
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    canvas.addEventListener('touchstart',mousePressed,false);
+    canvas.addEventListener('touchend',mouseReleased,false);
+    document.addEventListener('keypress',keyPressed);
+
+    function initializeF(initialColor) {
+      if (initialColor == 0) {
+        for (var j=0; j<nh; j++) {
+          for (var i=0; i<nw; i++) {
+            f[j][i][0] = j/(nh-1);
+            f[j][i][1] = 0.5;
+            f[j][i][2] = i/(nw-1);
+          }
+        }
+      } else if (initialColor == 1) {
+        for (var j=0; j<nh; j++) {
+          for (var i=0; i<nw; i++) {
+            f[j][i] = [0, 0, 0];
+            if (i < nw/3) {
+              f[j][i][0] = 1.;
+            } else if (i < 2*nw/3) {
+              f[j][i][1] = 1.;
+              f[j][i][0] = 1.;
+            } else {
+              f[j][i][2] = 1.;
+              f[j][i][1] = 0.5;
+            }
+          }
+        }
+      }
+    }
+
+    function initializeVelocity() {
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          u[j][i] = -(j-nh/2)*res;
+          v[j][i] = (i-nw/2)*res;
+          //u[j][i] = Math.sin(2*Math.PI*res*i/nWaves);
+          //v[j][i] = Math.sin(2*Math.PI*res*i/nWaves);
+        }
+      }
+    }
+
+    function advectTracer() {
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          var xOld = res*i + 0.5*res - dt*u[j][i];
+          var yOld = res*j + 0.5*res - dt*v[j][i];
+          if (xOld < 0) xOld += w
+          if (yOld < 0) yOld += h
+
+          ft[j][i] = interpolateBilinear(f,xOld,yOld);
+        }
+      }
+
+      for (var j=0; j<nh; j++) {
+        for (var i=0; i<nw; i++) {
+          f[j][i]=ft[j][i];
+        }
+      }
+    }
+
+    function testFn(a, j,i) {
+      return [0, j/(nh+1), i/(nw+1)]; 
+    }
+
+    function interpolateBilinear(a, x, y) {
+      // Use + for fractionX to avoid negatives
+      var aAbove = [0,0,0];
+      var aBelow = [0,0,0];
+      var aInterp = [0,0,0];
+       
+      var fractionX = (x+0.5*res) % res / res;
+      var iStart = Math.floor((x-0.5*res)/res) % nw;
+      if(iStart < 0) iStart += nw;
+      var iP = (iStart + 1) % nw
+
+      var fractionY = (y+0.5*res) % res / res;
+      var jStart = Math.floor((y-0.5*res)/res) % nh;
+      if(jStart < 0) jStart += nh
+      var jP = (jStart + 1) % nh
+
+      // Note that South is actually up on screen because of how canvases are drawn
+      var aSW = a[jStart][iStart];
+      var aSE = a[jStart][iP];
+      var aNW = a[jP][iStart];
+      var aNE = a[jP][iP];
+
+      var k=0;
+      for (var k=0; k<3; k++) {
+        aBelow[k] = aSW[k]*(1-fractionX) + aSE[k]*fractionX;
+        aAbove[k] = aNW[k]*(1-fractionX) + aNE[k]*fractionX;
+      }
+
+      for (var k=0; k<3; k++) {
+        aInterp[k] = aBelow[k]*(1-fractionY) + aAbove[k]*fractionY;
+      }
+      return aInterp;
+    }
+  
+
+    function mousePressed (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function mouseReleased (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function keyPressed (e) {
+      console.log(e.keyCode);
+
+      // Pause with p
+      if(e.keyCode == 112) {
+        paused = !paused;
+        
+        if(paused) console.log("Paused");
+        else {
+          console.log("Unpaused");
+          animate(canvas, context);
+        }
+      }
+    }
+
+    function reset(r) {
+      res = r;
+      nw = w/res;
+      nh = h/res;
+      console.log(nw + ", " + nh);
+      f = new Array(nh);
+      ft = new Array(nh);
+      u = new Array(nh);
+      v = new Array(nh);
+      for (var j=0; j<nh; j++) {
+        f[j] = new Array(nw);
+        ft[j] = new Array(nw);
+        u[j] = new Array(nw);
+        v[j] = new Array(nw);
+        for (var i=0; i<nw; i++) {
+          f[j][i] = new Array(3);
+          ft[j][i] = new Array(3);
+        }
+      }
+
+      initializeF(initialColor);
+      initializeVelocity(); 
+      animate(canvas, context);
+    }
+    
+
+
+
+  </script>
+
+
+</body>
+<p>
+Tests of animating 2D time-varying arrays as a function of resolution.
+
+<p>
+
+<input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),false);"/> with a cell side length of <input id="cellLength" type="text" value="10" size="3" maxlength="3"/> pixels (note that the canvas size is 300 by 400 pixels).
+<p>
+Press 'p' to pause/unpause.
+
+
+</div>
+</html>
