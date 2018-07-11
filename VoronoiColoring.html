@@ -93,11 +93,14 @@ var VoronoiDemo = {
 
   placeGreedyPoint: function(blueTurn) {
     var me = this;
-    var res = 20;
+    var res = 10;
+    if (me.limitingSitePlacement) {
+      res=me.gridSpacing;
+    }
     var nx = this.bbox.xr/res;
     var ny = this.bbox.yb/res;
-    var imax = -1;
-    var jmax = -1;
+    var xmax = -1;
+    var ymax = -1;
     var Amax = -1;
 
     me.mouseNotMoving = 0;
@@ -107,17 +110,22 @@ var VoronoiDemo = {
       //turnOffset = 1;
       iStart = 0;
     }
+
+		//this.sites.push({x:0,y:0});
+    //console.log(this.sites);
     
     for (var i=0; i<nx; i++) {
       for (var j=0; j<ny; j++) {
         var xc = i*res;
         var yc = j*res;
         me.mouseMoveAction(xc,yc);
-        me.render();
+        me.areaOnly();
+        //me.render();
         var Acur = me.redArea;
         if (blueTurn) Acur = me.blueArea;
         //console.log("xc, yc = " + xc + "," + yc);
         //console.log(Acur);
+        //console.log(me.redArea);
         if (Acur > Amax) {
           var alreadyAdded = false;
           for (var k=iStart; k<me.sites.length; k++)
@@ -136,6 +144,7 @@ var VoronoiDemo = {
       me.bluePoints += 1;
     } else me.redPoints += 1;
 
+    //console.log("xc, yc, Amax = " + xc + "," + yc + "," + Amax);
     me.addSite(xmax,ymax);
     me.mouseNotMoving = 1;
     me.render();
@@ -198,12 +207,16 @@ var VoronoiDemo = {
 		    for (var i=iStart; i<me.sites.length; i++)
 		      if (me.sites[i].x == xmouse && me.sites[i].y == ymouse) alreadyAdded = true;		      
 		      
+        // Not displaying what I'd expect, asynchronous issue?
+        
+        //console.log(me.sites);
 		    if (me.sites[0].x == -10 && me.sites[0].y == -10) {
 		      me.sites.pop();	      
 		    }
 		      
 		    if (!alreadyAdded) {
 			    me.addSite(xmouse,ymouse);
+          //console.log(me.sites);
           //if ((me.sites.length-1+turnOffset) % 2 == 0) {
           var blueTurn = true;
           if ((me.sites.length + turnOffset) % 2 == 0) {
@@ -211,7 +224,8 @@ var VoronoiDemo = {
             me.bluePoints += 1;
             blueTurn = false;
           } else me.redPoints += 1;
-          if (me.playAgainstComputer && (!me.playingAreaGame || me.currentTurn < me.nTurns)) {
+          //if (me.playAgainstComputer && (!me.playingAreaGame || me.currentTurn < me.nTurns)) {
+          if (me.playAgainstComputer && (!me.playingAreaGame)) {
             me.placeGreedyPoint(blueTurn);
             me.mouseMoveAction(xmouse, ymouse);
           }
@@ -432,6 +446,67 @@ var VoronoiDemo = {
     this.render();
   },
 
+  areaOnly: function() {
+    // Compute area for given state without rendering (just for computer player optimization purposes)
+		if (!this.diagram) {return;}
+
+		var sites = this.sites,
+			nSites = sites.length;
+		if (!nSites) {return;}
+
+	  this.blueArea = 0;
+	  this.redArea = 0;	  
+
+    for (var iCell=0; iCell<nSites; iCell++) {
+	    var cell = this.diagram.cells[this.sites[iCell].voronoiId];
+		  if (cell) {
+			  var halfedges = cell.halfedges,
+			  nHalfedges = halfedges.length;
+			  if (nHalfedges > 2) {
+				  v = halfedges[0].getStartpoint();
+				  var polygonArea = 0;
+				  for (var iHalfedge=0; iHalfedge<nHalfedges; iHalfedge++) {
+				    var xp = v.x;
+				    var yp = v.y;
+					  v = halfedges[iHalfedge].getEndpoint();
+					  polygonArea += 0.5*(v.x - xp)*(v.y + yp);
+					  }
+			  }
+			  // After clicking the last site in game mode, a new site is created which is a duplicate of the one just placed, which shouldn't count for the area calculation
+        var alreadyAdded = false;
+			  if (!this.playingAreaGame) {
+          for (var k=1; k<this.sites.length; k++)
+            if (this.sites[k].x == this.sites[0].x && this.sites[k].y == this.sites[0].y) alreadyAdded = true;
+       // && sites[0].x == sites[nSites-1].x && sites[0].y == sites[nSites-1].y && nSites > 1) duplicate = true;
+        }
+			  
+			  //if (nSites == 1 || (nSites == 2 && this.mouseNotMoving && !this.playingAreaGame)) polygonArea = this.bbox["xr"] * this.bbox["yb"];
+			  if (nSites == 1 || (nSites == 2 && alreadyAdded)) polygonArea = this.bbox["xr"] * this.bbox["yb"];
+			  //if (nSites == 1) polygonArea = this.bbox["xr"] * this.bbox["yb"];
+			  
+			  if (iCell == 0 && !this.playingAreaGame) {
+			    if (!alreadyAdded) {
+			      if (nSites % 2) {
+			        this.redArea += polygonArea/1000.0;
+			      }	else {
+			        this.blueArea += polygonArea/1000.0;
+			      }
+			    }
+			  } else {
+          var iTurn = iCell;
+          if (!this.playingAreaGame) iTurn += 1;
+			    if (iTurn % 2) {
+			      this.blueArea += polygonArea/1000.0;
+			    } else {				      
+			      this.redArea += polygonArea/1000.0;
+			    }
+          if (!this.playingAreaGame) iTurn -= 1;
+			  }
+		  }
+	  }
+    //console.log("Red area, blue area = " +  this.redArea + ", " + this.blueArea);
+  },
+
 	render: function() {
 		var ctx = this.canvas.getContext('2d');
 		// background
@@ -584,6 +659,7 @@ var VoronoiDemo = {
 		}
 		
     this.updateStats();
+    //console.log("Red area, blue area = " +  this.redArea + ", " + this.blueArea);
 		},
 	};
 </script>
@@ -677,8 +753,17 @@ Take turns placing points in the plane to maximize the area of your cells in the
 <br/>
 <input id="limitTo1D" type="checkbox" value="" onclick="VoronoiDemo.limitTo1D(document.getElementById('limitTo1D').checked)"/>Limit sites to one dimension
 <input id="rectangularCanvas" type="checkbox" value="" onclick="VoronoiDemo.setRectangularCanvas(document.getElementById('rectangularCanvas').checked)"/>Rectangular canvas
-<input id="playAgainstComputer" type="checkbox" value="" onclick="VoronoiDemo.playAgainstComputer = document.getElementById('playAgainstComputer').checked"/>Play against computer
+<input id="playAgainstComputer" type="checkbox" value="" onclick="VoronoiDemo.playAgainstComputer = document.getElementById('playAgainstComputer').checked"/>Play against computer*
 </div>
+<p>
+*Playing against the computer only works in sandbox mode currently and can be started on either player's turn (red or blue). The computer player uses a simple greedy algorithm to pick its next point, looping through a grid of possible locations (with a spacing of 10 pixels between points to keep it reasonably fast) and choosing the one that maximizes its area after that turn.
+<p>
+For more in-depth analysis of strategy in the 2D Voronoi game, see <a href="">Bouzy, Metivier, & Pellier, MCTS Experiments on the Voronoi Game, <it>Advances in Computer Games</it>, 7168 (2011)</a>, which suggests a balanced cell approach. The Voronoi game in 1D was solved by <a href="">H. Ahn et al., Competitive facility location: the Voronoi game, Theoretical Computer Science, 310.1 (2004)</a> and can be played here by checking the "Limit sites to one dimension" box. Slides from a talk I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a> on the Voronoi game can be found <a href="talks/VoronoiGames.pdf">here</a>.
+<p>
+Other versions of Voronoi diagram generator:<br>
+<a href="VoronoiColoringSavePNG.html">Various visualization modes for Voronoi diagrams (including overlays with photographs of melons)</a>
+<br>
+<a href="Voronoi.html">General Voronoi diagram generator (overlay user-specified images from web)</a>
 <p>
 <a href="programs.html">Back to programs</a>
 
