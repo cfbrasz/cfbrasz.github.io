@@ -97,8 +97,12 @@ var VoronoiDemo = {
     if (me.limitingSitePlacement) {
       res=me.gridSpacing;
     }
-    var nx = this.bbox.xr/res;
     var ny = this.bbox.yb/res;
+    if (me.limitingTo1D) {
+      ny=1;
+      res=1;
+    }
+    var nx = this.bbox.xr/res;
     var xmax = -1;
     var ymax = -1;
     var Amax = -1;
@@ -118,6 +122,8 @@ var VoronoiDemo = {
       for (var j=0; j<ny; j++) {
         var xc = i*res;
         var yc = j*res;
+        if (me.limitingTo1D)
+          yc = me.centerY
         me.mouseMoveAction(xc,yc);
         me.areaOnly();
         //me.render();
@@ -758,7 +764,7 @@ Take turns placing points in the plane to maximize the area of your cells in the
 <p>
 *Playing against the computer only works in sandbox mode currently and can be started on either player's turn (red or blue). The computer player uses a simple greedy algorithm to pick its next point, looping through a grid of possible locations (with a spacing of 10 pixels between points to keep it reasonably fast) and choosing the one that maximizes its area after that turn.
 <p>
-For more in-depth analysis of strategy in the 2D Voronoi game, see <a href="">Bouzy, Metivier, & Pellier, MCTS Experiments on the Voronoi Game, <it>Advances in Computer Games</it>, 7168 (2011)</a>, which suggests a balanced cell approach. The Voronoi game in 1D was solved by <a href="">H. Ahn et al., Competitive facility location: the Voronoi game, Theoretical Computer Science, 310.1 (2004)</a> and can be played here by checking the "Limit sites to one dimension" box. Slides from a talk I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a> on the Voronoi game can be found <a href="talks/VoronoiGames.pdf">here</a>.
+For more in-depth analysis of strategy in the 2D Voronoi game, see <a href="https://doi.org/10.1007/978-3-642-31866-5_9">Bouzy, Metivier, & Pellier, MCTS Experiments on the Voronoi Game, <it>Advances in Computer Games</it>, 7168 (2011)</a>, which suggests a balanced cell approach. The Voronoi game in 1D was solved by <a href="https://doi.org/10.1016/j.tcs.2003.09.004">H. Ahn et al., Competitive facility location: the Voronoi game, Theoretical Computer Science, 310.1 (2004)</a> and can be played here by checking the "Limit sites to one dimension" box. Slides from a talk I gave at <a href="https://web.williams.edu/Mathematics/csilva/FrankFest-2016.html">FrankFest</a> on the Voronoi game can be found <a href="talks/VoronoiGames.pdf">here</a>.
 <p>
 Other versions of Voronoi diagram generator:<br>
 <a href="VoronoiColoringSavePNG.html">Various visualization modes for Voronoi diagrams (including overlays with photographs of melons)</a>
