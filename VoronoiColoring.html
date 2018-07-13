@@ -191,13 +191,27 @@ var VoronoiDemo = {
     this.totalArea = this.bbox.xr * this.bbox.yb / 1000;
     // Put in kpx^2 units like red and blue area
 
+    drawActiveSite = function(x,y) {
+      me.render();
+      var ctx = me.canvas.getContext('2d');
+      ctx.beginPath();
+		  ctx.fillStyle = '#000';
+		  var siteRadius = 4;
+      ctx.moveTo(x,y);
+      ctx.arc(x, y, siteRadius, 0, 2 * Math.PI, false);
+		  ctx.fill();
+    }
+
 		this.canvas.onmousemove = function(e) {
-		  if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
 			if (!me.sites.length) {return;}
 			var mouse = me.normalizeEventCoords(me.canvas,e);
 		  var xmouse = mouse.x;
 		  var ymouse = mouse.y;
+		  if (me.playingAreaGame) {
+        drawActiveSite(xmouse,ymouse);
+        return;
+      }
       me.mouseMoveAction(xmouse, ymouse);
       me.render();
 			};
@@ -205,12 +219,15 @@ var VoronoiDemo = {
 		this.canvas.ontouchmove = function(e) {
       // Need to use e.changedTouches[0] (see normalizeEventCoords)
       e.preventDefault(); 
-      if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
 			if (!me.sites.length) {return;}
 			var mouse = me.normalizeEventCoords(me.canvas,e);
 		  var xmouse = mouse.x;
 		  var ymouse = mouse.y;
+		  if (me.playingAreaGame) {
+        drawActiveSite(xmouse,ymouse);
+        return;
+      }
       me.mouseMoveAction(xmouse, ymouse);
       me.render();
 			};
