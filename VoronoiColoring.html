@@ -190,6 +190,7 @@ var VoronoiDemo = {
 			};
 
 		this.canvas.ontouchmove = function(e) {
+      e.preventDefault(); 
       if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
 			if (!me.sites.length) {return;}
@@ -787,6 +788,7 @@ Other versions of Voronoi diagram generator:<br>
 <a href="Voronoi.html">General Voronoi diagram generator (overlay user-specified images from web)</a>
 <p>
 <a href="programs.html">Back to programs</a>
+Test
 
 </body>
 </html>
