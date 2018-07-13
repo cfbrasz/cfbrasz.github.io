@@ -54,8 +54,6 @@ var VoronoiDemo = {
 	redTurn: true,
 	nTurns: -1,
 	mouseNotMoving: 0,
-	touching: false,
-  usingTouch: false, 
 	gridSpacing: 50,
 	limitingSitePlacement: false,
   limitingTo1D: false,
@@ -207,10 +205,6 @@ var VoronoiDemo = {
 		this.canvas.ontouchmove = function(e) {
       // Need to use e.changedTouches[0] (see normalizeEventCoords)
       e.preventDefault(); 
-      //console.log(e.type);
-      //console.log(e.changedTouches[0].pageY);
-      if (!me.touching) return;
-      // doesn't actually stop 
       if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
 			if (!me.sites.length) {return;}
@@ -222,23 +216,16 @@ var VoronoiDemo = {
 			};
 
 		this.canvas.ontouchstart = function(e) {
-      me.touching = true;
-      me.usingTouch = true;
 		  if (me.playingAreaGame) {return;}
 			var mouse = me.normalizeEventCoords(me.canvas,e);
 		  var xmouse = mouse.x;
 		  var ymouse = mouse.y;
       me.mouseMoveAction(xmouse, ymouse);
-      //me.canvas.onclick = function(e) {console.log("test");};
-      // To not have click also try to add a point, but this actually seems find with rounding since points will be identical
     }
 
     clickAction = function(e) {
-      //if (e.type == "touchend")
-      //  e.preventDefault(); 
       //console.log(e.type)
       e.preventDefault(); 
-      me.touching = false;
       me.mouseNotMoving = 1;
       var turnOffset = -1;
       var iStart = 1;
@@ -289,12 +276,7 @@ var VoronoiDemo = {
           }
           me.render();
         }
-        /*
-        var sites = me.sites,
-          nSites = sites.length;
-        for (var iCell=0; iCell<nSites; iCell++) {
-          console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
-        }*/
+        
         //for (var i=0; i<me.sites.length; i++)
         //  console.log("i=" + i + ", (x,y) = " + me.sites[i].x + ", " + me.sites[i].y);
       }

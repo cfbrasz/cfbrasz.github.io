@@ -74,7 +74,7 @@ var VoronoiDemo = {
   recalculateOnMouseMove: true, 
   displayMode: 0, 
 
-	normalizeEventCoords: function(target,e) {
+  normalizeEventCoords: function(target,e) {
 		// http://www.quirksmode.org/js/events_properties.html#position
 		// =====
 		if (!e) {e=self.event;}
@@ -88,10 +88,23 @@ var VoronoiDemo = {
 			x = e.clientX+document.body.scrollLeft+document.documentElement.scrollLeft;
 			y = e.clientY+document.body.scrollTop+document.documentElement.scrollTop;
 			}
+    if (e.type == "touchmove" || e.type == "touchstart" || e.type == "touchend") {
+      x = e.changedTouches[0].pageX;
+      y = e.changedTouches[0].pageY;
+    }
+    x = x-target.offsetLeft;
+    y = y-target.offsetTop;
+    if (x < 0) x=0;
+    if (y < 0) y=0;
+    if (x > this.bbox.xr) x=this.bbox.xr;
+    if (y > this.bbox.yb) y=this.bbox.yb;
+    x = Math.round(x);
+    y = Math.round(y);
+    //console.log(x);
 		// =====
-		return {x:x-target.offsetLeft,y:y-target.offsetTop};
+		return {x:x,y:y};
 		},
-		
+	
   snapPointToGrid: function(x, y, gridSpacing) {
     var nx = Math.round(x/gridSpacing);
     var ny = Math.round(y/gridSpacing);
@@ -183,63 +196,96 @@ var VoronoiDemo = {
       me.mouseMoveAction(xmouse, ymouse);
       me.render();
 			};
-			
-		this.canvas.onclick = function(e) {
-		  me.mouseNotMoving = 1;
-		  //var turnOffset = 0;
-	    var iStart = 1;
-		  if (me.playingAreaGame) {
-		    //turnOffset = 1;
-		    iStart = 0;
-		  }
+
+		this.canvas.ontouchmove = function(e) {
+      // Need to use e.changedTouches[0] (see normalizeEventCoords)
+      e.preventDefault(); 
+		  me.mouseNotMoving = 0;
+			if (!me.sites.length) {return;}
 			var mouse = me.normalizeEventCoords(me.canvas,e);
-			if (!me.playingAreaGame || me.currentTurn < me.nTurns) {
-			  var alreadyAdded = false;
-			  var xmouse = mouse.x;
-			  var ymouse = mouse.y;
-		    if (me.limitingSitePlacement) {
-	        coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
-	        xmouse = coords.x;
-	        ymouse = coords.y;
-		    }
-        if (me.limitingTo1D) {
-          ymouse = me.centerY;
-        }
-		    for (var i=iStart; i<me.sites.length; i++)
-		      if (me.sites[i].x == xmouse && me.sites[i].y == ymouse) alreadyAdded = true;		      
-		      
-		    if (me.sites[0].x == -10 && me.sites[0].y == -10) {
-		      me.sites.pop();	      
-		    }
-		      
-		    if (!alreadyAdded) {
-			    me.addSite(xmouse,ymouse);
-          //if ((me.sites.length-1+turnOffset) % 2 == 0) {
-          var blueTurn = true;
-          if ((me.sites.length) % 2 == 0) {
-            me.currentTurn += 1;
-            me.bluePoints += 1;
-            blueTurn = false;
-          } else me.redPoints += 1;
-			    me.render();
-          //me.saveImage();
-			  }
-			  
-		    var sites = me.sites,
-          nSites = sites.length;
-        var xSiteString = "[";
-        var ySiteString = "[";
-		    for (var iCell=0; iCell<nSites-1; iCell++) {
-          xSiteString += sites[iCell].x + ", ";
-          ySiteString += sites[iCell].y + ", ";
-				  //console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
-			  }
-        xSiteString += sites[nSites-1].x + "]";
-        ySiteString += sites[nSites-1].y + "]";
-        console.log("sites.x = " + xSiteString)
-        console.log("sites.y = " + ySiteString)
-			}
+		  var xmouse = mouse.x;
+		  var ymouse = mouse.y;
+      me.mouseMoveAction(xmouse, ymouse);
+      me.render();
 			};
+
+		this.canvas.ontouchstart = function(e) {
+			var mouse = me.normalizeEventCoords(me.canvas,e);
+		  var xmouse = mouse.x;
+		  var ymouse = mouse.y;
+      me.mouseMoveAction(xmouse, ymouse);
+    }
+
+    clickAction = function(e) {
+      //console.log(e.type)
+      e.preventDefault(); 
+      me.mouseNotMoving = 1;
+      var turnOffset = -1;
+      var iStart = 1;
+      var mouse = me.normalizeEventCoords(me.canvas,e);
+      var alreadyAdded = false;
+      var xmouse = mouse.x;
+      var ymouse = mouse.y;
+      if (me.limitingSitePlacement) {
+        coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
+        xmouse = coords.x;
+        ymouse = coords.y;
+      }
+      if (me.limitingTo1D) {
+        ymouse = me.centerY;
+      }
+      for (var i=iStart; i<me.sites.length; i++)
+        if (me.sites[i].x == xmouse && me.sites[i].y == ymouse) alreadyAdded = true;		      
+        
+      //for (var i=0; i<me.sites.length; i++)
+      //  console.log("i=" + i + ", (x,y) = " + me.sites[i].x + ", " + me.sites[i].y);
+      if (me.sites[0].x == -10 && me.sites[0].y == -10) {
+        me.sites.pop();
+      }
+      //console.log(alreadyAdded);
+        
+      if (!alreadyAdded) {
+        me.addSite(xmouse,ymouse);
+        if (e.type == "touchend" && !me.playingAreaGame)
+          me.mouseMoveAction(xmouse, ymouse);
+          // Ensures that you do not get an extra point from touchmove near the one you placed with touchend
+        //console.log(me.sites);
+        //if ((me.sites.length-1+turnOffset) % 2 == 0) {
+        var blueTurn = true;
+        if ((me.sites.length + turnOffset) % 2 == 0) {
+          me.currentTurn += 1;
+          me.bluePoints += 1;
+          blueTurn = false;
+        } else me.redPoints += 1;
+        //if (me.playAgainstComputer && (!me.playingAreaGame || me.currentTurn < me.nTurns)) {
+        if (me.playAgainstComputer && (!me.playingAreaGame)) {
+          me.placeGreedyPoint(blueTurn);
+          me.mouseMoveAction(xmouse, ymouse);
+        }
+        me.render();
+      }
+      
+      //for (var i=0; i<me.sites.length; i++)
+      //  console.log("i=" + i + ", (x,y) = " + me.sites[i].x + ", " + me.sites[i].y);
+
+      var sites = me.sites,
+        nSites = sites.length;
+      var xSiteString = "[";
+      var ySiteString = "[";
+      for (var iCell=0; iCell<nSites-1; iCell++) {
+        xSiteString += sites[iCell].x + ", ";
+        ySiteString += sites[iCell].y + ", ";
+        //console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
+      }
+      xSiteString += sites[nSites-1].x + "]";
+      ySiteString += sites[nSites-1].y + "]";
+      console.log("sites.x = " + xSiteString)
+      console.log("sites.y = " + ySiteString)
+    };
+
+    this.canvas.ontouchend = clickAction;
+    this.canvas.onclick = clickAction;
+
 		var ctx = this.canvas.getContext('2d');
     var wid=this.canvas.width;
     var ht=this.canvas.height;
