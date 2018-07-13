@@ -54,6 +54,8 @@ var VoronoiDemo = {
 	redTurn: true,
 	nTurns: -1,
 	mouseNotMoving: 0,
+	touching: false,
+  usingTouch: false, 
 	gridSpacing: 50,
 	limitingSitePlacement: false,
   limitingTo1D: false,
@@ -79,8 +81,21 @@ var VoronoiDemo = {
 			x = e.clientX+document.body.scrollLeft+document.documentElement.scrollLeft;
 			y = e.clientY+document.body.scrollTop+document.documentElement.scrollTop;
 			}
+    if (e.type == "touchmove" || e.type == "touchstart" || e.type == "touchend") {
+      x = e.changedTouches[0].pageX;
+      y = e.changedTouches[0].pageY;
+    }
+    x = x-target.offsetLeft;
+    y = y-target.offsetTop;
+    if (x < 0) x=0;
+    if (y < 0) y=0;
+    if (x > this.bbox.xr) x=this.bbox.xr;
+    if (y > this.bbox.yb) y=this.bbox.yb;
+    x = Math.round(x);
+    y = Math.round(y);
+    //console.log(x);
 		// =====
-		return {x:x-target.offsetLeft,y:y-target.offsetTop};
+		return {x:x,y:y};
 		},
 		
   snapPointToGrid: function(x, y, gridSpacing) {
@@ -177,7 +192,7 @@ var VoronoiDemo = {
 		this.canvas = document.getElementById('voronoiCanvas');
     this.totalArea = this.bbox.xr * this.bbox.yb / 1000;
     // Put in kpx^2 units like red and blue area
-		
+
 		this.canvas.onmousemove = function(e) {
 		  if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
@@ -190,7 +205,12 @@ var VoronoiDemo = {
 			};
 
 		this.canvas.ontouchmove = function(e) {
+      // Need to use e.changedTouches[0] (see normalizeEventCoords)
       e.preventDefault(); 
+      //console.log(e.type);
+      //console.log(e.changedTouches[0].pageY);
+      if (!me.touching) return;
+      // doesn't actually stop 
       if (me.playingAreaGame) {return;}
 		  me.mouseNotMoving = 0;
 			if (!me.sites.length) {return;}
@@ -201,41 +221,59 @@ var VoronoiDemo = {
       me.render();
 			};
 
-
-			
-		this.canvas.onclick = function(e) {
-		  me.mouseNotMoving = 1;
-		  var turnOffset = -1;
-	    var iStart = 1;
-		  if (me.playingAreaGame) {
-		    turnOffset = 0;
-		    iStart = 0;
-		  }
+		this.canvas.ontouchstart = function(e) {
+      me.touching = true;
+      me.usingTouch = true;
+		  if (me.playingAreaGame) {return;}
 			var mouse = me.normalizeEventCoords(me.canvas,e);
-			if (!me.playingAreaGame || me.currentTurn < me.nTurns) {
-			  var alreadyAdded = false;
-			  var xmouse = mouse.x;
-			  var ymouse = mouse.y;
-		    if (me.limitingSitePlacement) {
-	        coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
-	        xmouse = coords.x;
-	        ymouse = coords.y;
-		    }
+		  var xmouse = mouse.x;
+		  var ymouse = mouse.y;
+      me.mouseMoveAction(xmouse, ymouse);
+      //me.canvas.onclick = function(e) {console.log("test");};
+      // To not have click also try to add a point, but this actually seems find with rounding since points will be identical
+    }
+
+    clickAction = function(e) {
+      //if (e.type == "touchend")
+      //  e.preventDefault(); 
+      //console.log(e.type)
+      e.preventDefault(); 
+      me.touching = false;
+      me.mouseNotMoving = 1;
+      var turnOffset = -1;
+      var iStart = 1;
+      if (me.playingAreaGame) {
+        turnOffset = 0;
+        iStart = 0;
+      }
+      var mouse = me.normalizeEventCoords(me.canvas,e);
+      if (!me.playingAreaGame || me.currentTurn < me.nTurns) {
+        var alreadyAdded = false;
+        var xmouse = mouse.x;
+        var ymouse = mouse.y;
+        if (me.limitingSitePlacement) {
+          coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
+          xmouse = coords.x;
+          ymouse = coords.y;
+        }
         if (me.limitingTo1D) {
           ymouse = me.centerY;
         }
-		    for (var i=iStart; i<me.sites.length; i++)
-		      if (me.sites[i].x == xmouse && me.sites[i].y == ymouse) alreadyAdded = true;		      
-		      
-        // Not displaying what I'd expect, asynchronous issue?
-        
-        //console.log(me.sites);
-		    if (me.sites[0].x == -10 && me.sites[0].y == -10) {
-		      me.sites.pop();	      
-		    }
-		      
-		    if (!alreadyAdded) {
-			    me.addSite(xmouse,ymouse);
+        for (var i=iStart; i<me.sites.length; i++)
+          if (me.sites[i].x == xmouse && me.sites[i].y == ymouse) alreadyAdded = true;		      
+          
+        //for (var i=0; i<me.sites.length; i++)
+        //  console.log("i=" + i + ", (x,y) = " + me.sites[i].x + ", " + me.sites[i].y);
+        if (me.sites[0].x == -10 && me.sites[0].y == -10) {
+          me.sites.pop();
+        }
+        //console.log(alreadyAdded);
+          
+        if (!alreadyAdded) {
+          me.addSite(xmouse,ymouse);
+          if (e.type == "touchend" && !me.playingAreaGame)
+            me.mouseMoveAction(xmouse, ymouse);
+            // Ensures that you do not get an extra point from touchmove near the one you placed with touchend
           //console.log(me.sites);
           //if ((me.sites.length-1+turnOffset) % 2 == 0) {
           var blueTurn = true;
@@ -249,16 +287,22 @@ var VoronoiDemo = {
             me.placeGreedyPoint(blueTurn);
             me.mouseMoveAction(xmouse, ymouse);
           }
-			    me.render();
-			  }
-			  /*
-		    var sites = me.sites,
-			    nSites = sites.length;
-		    for (var iCell=0; iCell<nSites; iCell++) {
-				  console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
-			  }*/
-			}
-			};
+          me.render();
+        }
+        /*
+        var sites = me.sites,
+          nSites = sites.length;
+        for (var iCell=0; iCell<nSites; iCell++) {
+          console.log("iCell = " + iCell + ". p.x, p.y = " + sites[iCell].x + ", " + sites[iCell].y);
+        }*/
+        //for (var i=0; i<me.sites.length; i++)
+        //  console.log("i=" + i + ", (x,y) = " + me.sites[i].x + ", " + me.sites[i].y);
+      }
+    };
+
+    this.canvas.ontouchend = clickAction;
+    this.canvas.onclick = clickAction;
+
 		//this.randomSites(10,true);
     //this.startGame(10);
     this.clearSites();
@@ -761,12 +805,14 @@ Take turns placing points in the plane to maximize the area of your cells in the
 <div class="divinfo" id="voronoiGenerator2">
 <input id="voronoiStartGameButton" type="button" value="Start new game with" onclick="VoronoiDemo.startGame(parseInt(document.getElementById('voronoiNumberTurns').value));VoronoiDemo.render();"/><input id="voronoiNumberTurns" type="text" value="5" size="3" maxlength="3"/> turns per player.
 </div>
-<h4 class="divhdr">Sites generator (sandbox mode)</h4>
+<h4 class="divhdr">Sandbox mode</h4>
 <div class="divinfo" id="voronoiGenerator">
-<input type="button" value="Generate" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),true);VoronoiDemo.render();"/> or <input type="button" value="Add" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),false);VoronoiDemo.render();"/><input id="voronoiNumberSites" type="text" value="10" size="5" maxlength="5"/> sites randomly
-<br/><input id="voronoiClearSites" type="button" value="Clear all sites" onclick="VoronoiDemo.clearSites();VoronoiDemo.render();"/>
-</br>
-In sandbox mode, moving the mouse previews the Voronoi diagram that would result from placing a site there. (Not implemented for mobile/touch devices currently.)
+<input id="voronoiClearSites" type="button" value="Clear all sites" onclick="VoronoiDemo.clearSites();VoronoiDemo.render();"/>
+<!--<input type="button" value="Generate"
+    onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),true);VoronoiDemo.render();"/> or <input type="button" value="Add" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),false);VoronoiDemo.render();"/><input id="voronoiNumberSites" type="text" value="10" size="5" maxlength="5"/> sites randomly -->
+<br/><input type="button" value="Add" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),false);VoronoiDemo.render();"/><input id="voronoiNumberSites" type="text" value="10" size="5" maxlength="5"/> random sites
+<br/>
+In sandbox mode, moving the mouse (or touching and dragging along the screen) previews the Voronoi diagram that would result from placing a site there.
 </div>
 <h4 class="divhdr">Options</h4>
 <div class="divinfo" id="voronoiGenerator3">
