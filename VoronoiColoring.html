@@ -188,6 +188,19 @@ var VoronoiDemo = {
       me.mouseMoveAction(xmouse, ymouse);
       me.render();
 			};
+
+		this.canvas.ontouchmove = function(e) {
+      if (me.playingAreaGame) {return;}
+		  me.mouseNotMoving = 0;
+			if (!me.sites.length) {return;}
+			var mouse = me.normalizeEventCoords(me.canvas,e);
+		  var xmouse = mouse.x;
+		  var ymouse = mouse.y;
+      me.mouseMoveAction(xmouse, ymouse);
+      me.render();
+			};
+
+
 			
 		this.canvas.onclick = function(e) {
 		  me.mouseNotMoving = 1;
@@ -751,6 +764,8 @@ Take turns placing points in the plane to maximize the area of your cells in the
 <div class="divinfo" id="voronoiGenerator">
 <input type="button" value="Generate" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),true);VoronoiDemo.render();"/> or <input type="button" value="Add" onclick="VoronoiDemo.randomSites(parseInt(document.getElementById('voronoiNumberSites').value,10),false);VoronoiDemo.render();"/><input id="voronoiNumberSites" type="text" value="10" size="5" maxlength="5"/> sites randomly
 <br/><input id="voronoiClearSites" type="button" value="Clear all sites" onclick="VoronoiDemo.clearSites();VoronoiDemo.render();"/>
+</br>
+In sandbox mode, moving the mouse previews the Voronoi diagram that would result from placing a site there. (Not implemented for mobile/touch devices currently.)
 </div>
 <h4 class="divhdr">Options</h4>
 <div class="divinfo" id="voronoiGenerator3">
