@@ -58,6 +58,8 @@ var VoronoiDemo = {
 	limitingSitePlacement: false,
   limitingTo1D: false,
   rectangularCanvas: false, 
+  quarantineMode: true, 
+  qRadius: 80,
 	hidingSites: false,
   playAgainstComputer: false, 
   blueColor: '#25f',
@@ -101,6 +103,44 @@ var VoronoiDemo = {
     var ny = Math.round(y/gridSpacing);
     x = nx*gridSpacing;
     y = ny*gridSpacing;
+    return {x:x, y:y};
+  },
+
+  pushAwayFromNeighbors: function(x, y, qRadius) {
+    var me = this;
+    var overlappingNeighbor=true;
+    var qRsq = qRadius*qRadius;
+    var tries=0
+    //console.log("x initial = " + x);
+    var kStart=1;
+    if (me.playingAreaGame)
+      kStart=0;
+     
+    while (overlappingNeighbor && tries < 20) {
+      tries += 1;
+      overlappingNeighbor=false; 
+      //console.log(me.sites.length);
+      //console.log(me.sites[0].x);
+      for (var k=kStart; k<me.sites.length; k++) {
+        var dx = x - me.sites[k].x;
+        var dy = y - me.sites[k].y;
+        var distSq = dx*dx + dy*dy;
+        if (distSq < qRsq) {
+          var scale = Math.sqrt(qRsq/distSq)*1.0001;
+          x = me.sites[k].x + scale*dx;
+          y = me.sites[k].y + scale*dy;
+          overlappingNeighbor=true;
+        }
+      }
+      //console.log("Try " + tries + ": x = " + x);
+    }
+    //if (me.sites.length > 1)
+      //console.log(me.sites[0].x + ", " + me.sites[1].x)
+    //console.log(tries);
+    if (overlappingNeighbor) {
+      x = null;
+      y = null;
+    }
     return {x:x, y:y};
   },
 
@@ -172,6 +212,11 @@ var VoronoiDemo = {
   mouseMoveAction: function(xmouse, ymouse) {
 		var me = this;
     var site = me.sites[0];
+    if (me.quarantineMode) {
+      coords = me.pushAwayFromNeighbors(xmouse, ymouse, me.qRadius);
+      xmouse = coords.x;
+      ymouse = coords.y;
+    }
     if (me.limitingSitePlacement) {
       coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
       xmouse = coords.x;
@@ -209,6 +254,11 @@ var VoronoiDemo = {
 		  var xmouse = mouse.x;
 		  var ymouse = mouse.y;
 		  if (me.playingAreaGame) {
+        if (me.quarantineMode) {
+          coords = me.pushAwayFromNeighbors(xmouse, ymouse, me.qRadius);
+          xmouse = coords.x;
+          ymouse = coords.y;
+        }
         drawActiveSite(xmouse,ymouse);
         return;
       }
@@ -225,6 +275,11 @@ var VoronoiDemo = {
 		  var xmouse = mouse.x;
 		  var ymouse = mouse.y;
 		  if (me.playingAreaGame) {
+        if (me.quarantineMode) {
+          coords = me.pushAwayFromNeighbors(xmouse, ymouse, me.qRadius);
+          xmouse = coords.x;
+          ymouse = coords.y;
+        }
         drawActiveSite(xmouse,ymouse);
         return;
       }
@@ -255,6 +310,11 @@ var VoronoiDemo = {
         var alreadyAdded = false;
         var xmouse = mouse.x;
         var ymouse = mouse.y;
+        if (me.quarantineMode) {
+          coords = me.pushAwayFromNeighbors(xmouse, ymouse, me.qRadius);
+          xmouse = coords.x;
+          ymouse = coords.y;
+        }
         if (me.limitingSitePlacement) {
           coords = me.snapPointToGrid(xmouse, ymouse, me.gridSpacing);
           xmouse = coords.x;
@@ -347,6 +407,11 @@ var VoronoiDemo = {
 		for (var i=0; i<n; i++) {
 		  var xrand = self.Math.round(xo+self.Math.random()*dx);
 		  var yrand = self.Math.round(yo+self.Math.random()*dy);
+      if (me.quarantineMode) {
+        coords = me.pushAwayFromNeighbors(xmouse, ymouse, me.qRadius);
+        xmouse = coords.x;
+        ymouse = coords.y;
+      }
 		  if (this.limitingSitePlacement) {
         coords = this.snapPointToGrid(xrand, yrand, this.gridSpacing);
 	      xrand = coords.x;
@@ -506,6 +571,11 @@ var VoronoiDemo = {
     this.totalArea = this.bbox.xr * this.bbox.yb / 1000;
     this.centerY = this.bbox.yb/2,
     this.canvas.height = this.bbox.yb;
+    this.render();
+  },
+
+  setQuarantineMode: function(val) { 
+    this.quarantineMode = val;
     this.render();
   },
 
@@ -719,6 +789,19 @@ var VoronoiDemo = {
 			  //ctx.rect(site.x-2/3,site.y-2/3,2,2);
 			  }
 		  ctx.fill();
+
+      if (this.quarantineMode) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#aaa';
+        nSites = sites.length;
+        while (nSites--) {
+          site = sites[nSites];
+          ctx.moveTo(site.x,site.y);
+          ctx.beginPath();
+          ctx.arc(site.x, site.y, this.qRadius, 0, 2 * Math.PI, false);
+          ctx.stroke(); 
+          }
+      }
 		}
 		
     this.updateStats();
@@ -821,6 +904,8 @@ In sandbox mode, moving the mouse (or touching and dragging along the screen) pr
 <input id="limitTo1D" type="checkbox" value="" onclick="VoronoiDemo.limitTo1D(document.getElementById('limitTo1D').checked)"/>Limit sites to one dimension
 <input id="rectangularCanvas" type="checkbox" value="" onclick="VoronoiDemo.setRectangularCanvas(document.getElementById('rectangularCanvas').checked)"/>Rectangular canvas
 <input id="playAgainstComputer" type="checkbox" value="" onclick="VoronoiDemo.playAgainstComputer = document.getElementById('playAgainstComputer').checked"/>Play against computer*
+<br/>
+<input id="quarantineMode" type="checkbox" value="" checked onclick="VoronoiDemo.setQuarantineMode(document.getElementById('quarantineMode').checked)"/>Quarantine mode (minimum distance between points)
 </div>
 <p>
 *Playing against the computer only works in sandbox mode currently and can be started on either player's turn (red or blue). The computer player uses a simple greedy algorithm to pick its next point, looping through a grid of possible locations (with a spacing of 10 pixels between points to keep it reasonably fast) and choosing the one that maximizes its area after that turn.
