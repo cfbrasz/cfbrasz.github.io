@@ -1,0 +1,354 @@
+<html>
+<div class="content">
+
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">  -->
+    <style>
+      html, body {
+        width:  100%;
+        height: 100%;
+        margin: 0px;
+        padding: 0px;
+      }
+      /* div.content { width: 320px } */
+    </style>
+
+    <script type="text/javascript" src="js-colormaps.js"></script>
+  </head>
+
+<title>Diffusion-limited aggregation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
+<style type="text/css">
+* {font-family: "Lato", sans-serif}
+</style>
+
+<body>
+  <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
+  <canvas id="myCanvas" ></canvas>
+  <script>
+    window.requestAnimFrame = (function(callback) {
+      return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame ||
+      function(callback) {
+        window.setTimeout(callback, 1000 / 60);
+      };
+    })();
+
+    function rgb(r, g, b){
+      r = Math.floor(255*r);
+      g = Math.floor(255*g);
+      b = Math.floor(255*b);
+      return ["rgb(",r,",",g,",",b,")"].join("");
+    }
+
+    function animate(canvas, context) {
+
+      if (!stop) {
+        context.clearRect(0, 0, canvas.width, canvas.height);      
+        for (let i=0; i<xs.length; i++) {
+          context.fillStyle = colors[i];
+          context.fillRect(xs[i]*res, ys[i]*res, res, res);
+        }
+        if (showWalkers) {
+          if (inbounds(walker)) {
+            for (let i=0; i<stepsPerFrame; i++) {
+              walker = move_walker(walker, version);
+              context.fillStyle = walkerColor;
+              context.fillRect(walker[0]*res, walker[1]*res, res, res);
+              if (check_tree_contact(walker, leaves)) {
+                add_leaf(walker, tree, leaves, version); 
+                if (stop_criterion_reached(walker))
+                  stop = true;
+                walkerNumber += 1;
+                walker = add_walker(radius, version);
+              }
+            }
+          } else {
+            walker = add_walker(radius, version);
+          }
+        } else {
+          for (let i=0; i<leavesPerFrame; i++) {
+            let contacted_tree=false;
+            while (!contacted_tree) {
+              while (inbounds(walker)) {
+                walker = move_walker(walker, version);
+                if (check_tree_contact(walker, leaves)) {
+                  add_leaf(walker, tree, leaves, version); 
+                  if (stop_criterion_reached(walker))
+                    stop = true;
+                  walkerNumber += 1;
+                  walker = add_walker(radius, version);
+                  contacted_tree=true;
+                  break;
+                }
+              }
+              walker = add_walker(radius, version);
+            }
+          }
+        }
+      }
+
+      // request new frame
+      if (!paused) {
+        requestAnimFrame(function() {
+          animate(canvas, context);
+        });
+      }
+    }
+
+    function stop_criterion_reached(walker) {
+      let distSq = (walker[0]-x0)*(walker[0]-x0) + (walker[1]-y0)*(walker[1]-y0);
+      if (distSq >= radSq)
+        return true;
+    }
+
+
+    function check_tree_contact(walker, leaves) {
+      return leaves.has(convert1D(walker[0], walker[1]));
+    }
+
+    function convert1D(x, y) {
+      return y*nw + x;
+    }
+
+    function convert2D(s) {
+      x = s%nw;
+      y = Math.floor(s/nw);
+      return [x, y];
+    }
+
+    function enforceBounds(x) {
+        if (x < 0) {
+            return 0;
+        } else if (x > 1){
+            return 1;
+        } else {
+            return x;
+        }
+    } 
+
+    function interpolateLinearly(x, values) {
+
+      // Split values into four lists
+      var x_values = [];
+      var r_values = [];
+      var g_values = [];
+      var b_values = [];
+      for (i in values) {
+        x_values.push(values[i][0]);
+        r_values.push(values[i][1][0]);
+        g_values.push(values[i][1][1]);
+        b_values.push(values[i][1][2]);
+      }
+
+      var i = 1;
+      while (x_values[i] < x) {
+        i = i+1;
+      }
+      i = i-1;
+
+      var width = Math.abs(x_values[i] - x_values[i+1]);
+      var scaling_factor = (x - x_values[i]) / width;
+
+      // Get the new color values though interpolation
+      var r = r_values[i] + scaling_factor * (r_values[i+1] - r_values[i])
+      var g = g_values[i] + scaling_factor * (g_values[i+1] - g_values[i])
+      var b = b_values[i] + scaling_factor * (b_values[i+1] - b_values[i])
+
+      //return [enforceBounds(r), enforceBounds(g), enforceBounds(b)];
+      return rgb(enforceBounds(r), enforceBounds(g), enforceBounds(b));
+
+    } 
+
+    function random_int(n) {
+      return Math.floor(Math.random() * n);
+    }
+
+    function move_walker(walker, version) {
+      /*Version 1: 4 directions (right, up, left, down)
+      Version 2: 8 directions (add diagonals)*/
+      if (version == 1)
+        direction = random_int(4);
+      else if (version == 2)
+        direction = random_int(8);
+      if (direction == 0)
+        walker[0] += 1;
+      else if (direction == 1)
+        walker[1] += 1;
+      else if (direction == 2)
+        walker[0] -= 1;
+      else if (direction == 3)
+        walker[1] -= 1;
+      else if (direction == 4) {
+        walker[0] += 1;
+        walker[1] += 1;
+      } else if (direction == 5) {
+        walker[0] -= 1;
+        walker[1] += 1;
+      } else if (direction == 6) {
+        walker[0] -= 1;
+        walker[1] -= 1;
+      } else if (direction == 7) {
+        walker[0] += 1;
+        walker[1] -= 1;
+      }
+      return walker;
+    }
+
+    function add_walker(radius, version) {
+      //Version 1-2: integer positions, movement
+      theta = 2*Math.PI*Math.random();
+      x = x0+radius*Math.cos(theta);
+      y = y0+radius*Math.sin(theta);
+      x = Math.round(x);
+      y = Math.round(y);
+      walkerColor = interpolateLinearly( (walkerNumber/maxTreeSize) % 1, CMRmap)
+      return [x, y];
+    }
+
+    function inbounds(walker) {
+      x=walker[0];
+      y=walker[1];
+      return (x>=0) && (y>=0) && (x<nw) && (y<nh);
+    }
+
+    function add_leaf(walker, tree, leaves, version) {
+      x = walker[0];
+      y = walker[1];
+      let leaf = convert1D(x, y);
+      tree.add(leaf);
+      xs.push(x);
+      ys.push(y);
+      colors.push(walkerColor);
+      leaves.delete(leaf);
+      if (version == 1) {
+        x_add = [1, 0, -1, 0];
+        y_add = [0, 1, 0, -1];
+      }
+      else { // if version >= 2:
+        x_add = [1, 0, -1, 0, 1, -1, -1, 1];
+        y_add = [0, 1, 0, -1, 1, 1, -1, -1];
+      }
+      for (let i=0; i<x_add.length; i++) {
+        leaf_new = convert1D(x + x_add[i], y + y_add[i])
+        if (!tree.has(leaf_new))
+          leaves.add(leaf_new) 
+      }
+    }
+
+    var canvas = document.getElementById('myCanvas');
+    var context = canvas.getContext('2d');
+    var version = 2;
+    var paused = false;
+    var showWalkers = false;
+    var leaves = new Set();
+    var tree = new Set();
+    var w = 600;
+    var h = 600;
+    var res = 2;
+    var nw = w/res;
+    var nh = h/res;
+    var radius = 0.4*nw;
+    var x0=nw/2;
+    var y0=nh/2;
+    var xs = [];
+    var ys = [];
+    var walker = [x0, y0];
+    var walkerNumber=0;
+    var walkerColor="rgb(0,0,0)";
+    var maxTreeSize=3000;
+    var stepsPerFrame = 50; // for version 1
+    var leavesPerFrame = 20; // for version 2
+    var colors = [];
+    var stop = false; // stop when tree reaches radius
+    var radSq = radius*radius;
+    xs.push(x0);
+    ys.push(y0);
+    leaves.add(convert1D(x0, y0));
+    add_leaf(walker, tree, leaves, version);
+    colors.push("rgb(0,0,0)");
+
+    walker = add_walker(radius, version);
+    animate(canvas, context);
+
+    canvas.width = w;
+    canvas.height = h;
+
+    canvas.addEventListener('mousedown',mousePressed,false);
+    canvas.addEventListener('mouseup',mouseReleased,false);
+    canvas.addEventListener('touchstart',mousePressed,false);
+    canvas.addEventListener('touchend',mouseReleased,false);
+    document.addEventListener('keypress',keyPressed);
+
+    function mousePressed (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function mouseReleased (e) {
+      startX = e.x;
+      startY = e.y;
+    }
+
+    function keyPressed (e) {
+      console.log(e.keyCode);
+
+      // Pause with p
+      if(e.keyCode == 112) {
+        paused = !paused;
+        
+        if(paused) console.log("Paused");
+        else {
+          console.log("Unpaused");
+          animate(canvas, context);
+        }
+      }
+    }
+
+    function reset(r) {
+      res = r;
+      nw = w/res;
+      nh = h/res;
+      radius = 0.4*nw;
+      x0=nw/2;
+      y0=nh/2;
+
+      leaves = new Set();
+      tree = new Set();
+      xs = [];
+      ys = [];
+      walker = [x0, y0];
+      walkerNumber=0;
+      walkerColor="rgb(0,0,0)";
+      colors = [];
+      stop = false; // stop when tree reaches radius
+      radSq = radius*radius;
+      xs.push(x0);
+      ys.push(y0);
+      leaves.add(convert1D(x0, y0));
+      add_leaf(walker, tree, leaves, version);
+      colors.push("rgb(0,0,0)");
+
+      walker = add_walker(radius, version);
+      animate(canvas, context);
+    }
+    
+
+
+
+  </script>
+
+
+</body>
+<p>
+Simulation of diffusion-limited aggregation
+
+<p>
+
+<input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),false);"/> with a cell side length of <input id="cellLength" type="text" value="2" size="3" maxlength="3"/> pixels (note that the canvas size is 400 by 400 pixels).
+<p>
+Press 'p' to pause/unpause.
+
+
+</div>
+</html>
