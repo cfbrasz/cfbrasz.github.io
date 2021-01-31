@@ -41,50 +41,101 @@
       return ["rgb(",r,",",g,",",b,")"].join("");
     }
 
+    function drawWalkerSource(context, attractorCase) {
+      context.strokeStyle = "rgb(0, 200, 0)";
+      context.fillStyle = context.strokeStyle;
+      if (mouseSource) {
+        //context.fillRect(mouseSourceX-Math.floor(res/2), mouseSourceY-Math.floor(res/2), res, res);
+        context.beginPath();
+        context.arc(mouseSourceX, mouseSourceY, 10, 0, 2*Math.PI);
+        context.fill();
+      } else {
+        if (attractorCase == 0) {
+          context.beginPath();
+          context.arc(w/2, h/2, radius*res, 0, 2*Math.PI);
+          context.stroke();
+        } else if (attractorCase == 1) {
+          context.beginPath();
+          context.moveTo(0,h-res*sourceHeight);
+          context.lineTo(w,h-res*sourceHeight);
+          context.stroke();
+        } else if (attractorCase == 2) {
+          context.fillRect(nw/2*res, nh/2*res, res, res);
+        }
+      }
+    }
+
     function animate(canvas, context) {
 
       if (!stop) {
         context.clearRect(0, 0, canvas.width, canvas.height);      
+        //context.fillStyle = "rgb(220,220,220)";
+        //context.fillRect(0, 0, w, h);
+        drawWalkerSource(context, attractorCase) 
         for (let i=0; i<xs.length; i++) {
           context.fillStyle = colors[i];
           context.fillRect(xs[i]*res, ys[i]*res, res, res);
         }
         if (showWalkers) {
-          if (inbounds(walker)) {
-            for (let i=0; i<stepsPerFrame; i++) {
+          for (let i=0; i<stepsPerFrame; i++) {
+            if (inbounds(walker)) {
               walker = move_walker(walker, version);
               context.fillStyle = walkerColor;
               context.fillRect(walker[0]*res, walker[1]*res, res, res);
               if (check_tree_contact(walker, leaves)) {
-                add_leaf(walker, tree, leaves, version); 
-                if (stop_criterion_reached(walker))
-                  stop = true;
-                walkerNumber += 1;
-                walker = add_walker(radius, version);
+                if (Math.random() < stickiness) {
+                  add_leaf(walker, tree, leaves, version); 
+                  if (stop_criterion_reached(walker, attractorCase)) {
+                    stop = true;
+                    break;
+                  }
+                  walkerNumber += 1;
+                  walker = add_walker(radius, attractorCase);
+                }
               }
             }
-          } else {
-            walker = add_walker(radius, version);
+          }
+          if (!inbounds(walker)) {
+            walker = add_walker(radius, attractorCase);
+          }
+          if (stop) {
+            // Redraw so we can clear the walker
+            context.clearRect(0, 0, canvas.width, canvas.height);      
+            drawWalkerSource(context, attractorCase) 
+            for (let i=0; i<xs.length; i++) {
+              context.fillStyle = colors[i];
+              context.fillRect(xs[i]*res, ys[i]*res, res, res);
+            }
           }
         } else {
           for (let i=0; i<leavesPerFrame; i++) {
             let contacted_tree=false;
-            while (!contacted_tree) {
+            while (!contacted_tree && !stop) {
               while (inbounds(walker)) {
                 walker = move_walker(walker, version);
                 if (check_tree_contact(walker, leaves)) {
-                  add_leaf(walker, tree, leaves, version); 
-                  if (stop_criterion_reached(walker))
-                    stop = true;
-                  walkerNumber += 1;
-                  walker = add_walker(radius, version);
-                  contacted_tree=true;
-                  break;
+                  if (Math.random() < stickiness) {
+                    add_leaf(walker, tree, leaves, version); 
+                    if (stop_criterion_reached(walker, attractorCase)) {
+                      stop = true;
+                      let distSq = (walker[0]-x0)*(walker[0]-x0) + (walker[1]-y0)*(walker[1]-y0);
+                      console.log("distSq, radSq = " + distSq + ", " + radSq);
+                      console.log("walker = " + walker[0] + ", " + walker[1]);
+                    }
+                    walkerNumber += 1;
+                    walker = add_walker(radius, attractorCase);
+                    contacted_tree=true;
+                    break;
+                  }
                 }
               }
-              walker = add_walker(radius, version);
+              walker = add_walker(radius, attractorCase);
             }
           }
+        }
+        if (stop) {
+          console.log("Stop criterion reached");
+          console.log("Number of pixels in tree = " + xs.length);
         }
       }
 
@@ -96,10 +147,22 @@
       }
     }
 
-    function stop_criterion_reached(walker) {
-      let distSq = (walker[0]-x0)*(walker[0]-x0) + (walker[1]-y0)*(walker[1]-y0);
-      if (distSq >= radSq)
-        return true;
+    function stop_criterion_reached(walker, attractorCase) {
+      // Stop adding new walkers when the tree reaches the source line for new walkers
+      if (mouseSource)
+        return false;
+      if (attractorCase == 0) {
+        // Leaf to be converted is on a circle of radius nw/2
+        let distSq = (walker[0]-x0)*(walker[0]-x0) + (walker[1]-y0)*(walker[1]-y0);
+        if (distSq >= radSq)
+          return true;
+      } else if (attractorCase == 1) {
+        // Leaf to be converted is on the top row
+        return walker[1] <= 0;
+      } else if (attractorCase == 2) {
+        // Leaf to be converted is in the center
+        return walker[1] == nh/2 && walker[0] == nw/2;
+      }
     }
 
 
@@ -108,7 +171,8 @@
     }
 
     function convert1D(x, y) {
-      return y*nw + x;
+      //return y*nw + x;
+      return (y+nh/2)*(2*nw) + (x+nw/2);
     }
 
     function convert2D(s) {
@@ -166,10 +230,10 @@
 
     function move_walker(walker, version) {
       /*Version 1: 4 directions (right, up, left, down)
-      Version 2: 8 directions (add diagonals)*/
+      Version 0: 8 directions (add diagonals)*/
       if (version == 1)
         direction = random_int(4);
-      else if (version == 2)
+      else if (version == 0)
         direction = random_int(8);
       if (direction == 0)
         walker[0] += 1;
@@ -195,13 +259,27 @@
       return walker;
     }
 
-    function add_walker(radius, version) {
-      //Version 1-2: integer positions, movement
-      theta = 2*Math.PI*Math.random();
-      x = x0+radius*Math.cos(theta);
-      y = y0+radius*Math.sin(theta);
-      x = Math.round(x);
-      y = Math.round(y);
+    function add_walker(radius, attractorCase) {
+      if (mouseSource) {
+        x = Math.round(mouseSourceX/res);
+        y = Math.round(mouseSourceY/res);
+      } else {
+        if (attractorCase == 0) {
+          // Circle of radius nw/2
+          theta = 2*Math.PI*Math.random();
+          x = x0+radius*Math.cos(theta);
+          y = y0+radius*Math.sin(theta);
+          x = Math.round(x);
+          y = Math.round(y);
+        } else if (attractorCase == 1) {
+          // Line along top of canvas, y=0
+          x = Math.round((nw-1)*Math.random());
+          y = nh-sourceHeight;
+        } else if (attractorCase == 2) {
+          x = nw/2;
+          y = nh/2;
+        }
+      }
       walkerColor = interpolateLinearly( (walkerNumber/maxTreeSize) % 1, CMRmap)
       return [x, y];
     }
@@ -209,7 +287,8 @@
     function inbounds(walker) {
       x=walker[0];
       y=walker[1];
-      return (x>=0) && (y>=0) && (x<nw) && (y<nh);
+      //return (x>=0) && (y>=0) && (x<nw) && (y<nh);
+      return (x>=-buffer) && (y>=-buffer) && (x<nw+buffer) && (y<nh+buffer);
     }
 
     function add_leaf(walker, tree, leaves, version) {
@@ -219,6 +298,11 @@
       tree.add(leaf);
       xs.push(x);
       ys.push(y);
+      if (attractorCase == 1) {
+        let desiredSourceHeight = Math.round((nh-y)*minSourceHeightRatio);
+        if (desiredSourceHeight > sourceHeight && desiredSourceHeight < nh)
+          sourceHeight = desiredSourceHeight;
+      }
       colors.push(walkerColor);
       leaves.delete(leaf);
       if (version == 1) {
@@ -238,7 +322,7 @@
 
     var canvas = document.getElementById('myCanvas');
     var context = canvas.getContext('2d');
-    var version = 2;
+    var version = 0;
     var paused = false;
     var showWalkers = false;
     var leaves = new Set();
@@ -248,7 +332,13 @@
     var res = 2;
     var nw = w/res;
     var nh = h/res;
-    var radius = 0.4*nw;
+    var radiusScale=0.5
+    var radius = radiusScale*nw;
+    var buffer = radius/4;
+    // For converting to 1D coord for set, need to include points outside of grid
+    // Allow 50% extra on all sides
+    var nw_buf = 2*nw
+    var nh_buf = 2*nh
     var x0=nw/2;
     var y0=nh/2;
     var xs = [];
@@ -256,19 +346,29 @@
     var walker = [x0, y0];
     var walkerNumber=0;
     var walkerColor="rgb(0,0,0)";
-    var maxTreeSize=3000;
-    var stepsPerFrame = 50; // for version 1
-    var leavesPerFrame = 20; // for version 2
+    var attractorCase=0;
+    var mouseSource=false;
+    var mouseSourceX=0;
+    var mouseSourceY=0;
+    //var maxTreeSizePrefactor=11000; // Fit from some data
+    var maxTreeSizePrefactor=15000; // overshoot a bit to try to avoid having to cross over
+    var maxTreeSize=Math.round(maxTreeSizePrefactor * Math.pow(res*600/w, -1.67));
+    console.log("maxTreeSize = " + maxTreeSize + " for w = " + w + ", res = " + res);
+    var stepsPerFrame = 500; // for version 1, showing the walkers
+    var leavesPerFrame = 10; // for version 2
     var colors = [];
     var stop = false; // stop when tree reaches radius
     var radSq = radius*radius;
+    var sourceHeight = nh/3;
+    var minSourceHeightRatio = 1.2; // source line must be minSourceHeightRatio times highest pixel on tree
+    var stickiness=1;
     xs.push(x0);
     ys.push(y0);
     leaves.add(convert1D(x0, y0));
     add_leaf(walker, tree, leaves, version);
     colors.push("rgb(0,0,0)");
 
-    walker = add_walker(radius, version);
+    walker = add_walker(radius, attractorCase);
     animate(canvas, context);
 
     canvas.width = w;
@@ -276,6 +376,7 @@
 
     canvas.addEventListener('mousedown',mousePressed,false);
     canvas.addEventListener('mouseup',mouseReleased,false);
+    canvas.addEventListener('mousemove',mouseMoved,false);
     canvas.addEventListener('touchstart',mousePressed,false);
     canvas.addEventListener('touchend',mouseReleased,false);
     document.addEventListener('keypress',keyPressed);
@@ -290,8 +391,16 @@
       startY = e.y;
     }
 
+    function mouseMoved (e) {
+      xm = e.x;
+      ym = e.y;
+      //console.log(xm + ", " + ym);
+      mouseSourceX = xm; 
+      mouseSourceY = ym; 
+    }
+
     function keyPressed (e) {
-      console.log(e.keyCode);
+      //console.log(e.keyCode);
 
       // Pause with p
       if(e.keyCode == 112) {
@@ -305,36 +414,81 @@
       }
     }
 
-    function reset(r) {
+    function reset(r, attractor) {
       res = r;
       nw = w/res;
       nh = h/res;
-      radius = 0.4*nw;
+      radius = radiusScale*nw;
       x0=nw/2;
       y0=nh/2;
+      maxTreeSize=maxTreeSizePrefactor * Math.pow(res*600/w, -1.67);
+      console.log("maxTreeSize = " + maxTreeSize + " for w = " + w + ", res = " + res);
+      sourceHeight = nh/3;
 
+      stop = false; // stop when tree reaches radius
+
+      attractorCase = attractor;
       leaves = new Set();
       tree = new Set();
       xs = [];
       ys = [];
-      walker = [x0, y0];
-      walkerNumber=0;
-      walkerColor="rgb(0,0,0)";
       colors = [];
-      stop = false; // stop when tree reaches radius
-      radSq = radius*radius;
-      xs.push(x0);
-      ys.push(y0);
-      leaves.add(convert1D(x0, y0));
-      add_leaf(walker, tree, leaves, version);
-      colors.push("rgb(0,0,0)");
+      walkerNumber=0;
+      if (attractorCase == 0) {
+        walker = [x0, y0];
+        walkerColor="rgb(0,0,0)";
+        radSq = radius*radius;
+        xs.push(x0);
+        ys.push(y0);
+        leaves.add(convert1D(x0, y0));
+        add_leaf(walker, tree, leaves, version);
+        colors.push("rgb(0,0,0)");
+      } else if (attractorCase == 1) {
+        y0 = nh-1;
+        for (let i=0; i<nw; i++) {
+          walker = [i, y0];
+          xs.push(i);
+          ys.push(y0);
+          leaves.add(convert1D(i, y0));
+          add_leaf(walker, tree, leaves, version);
+          colors.push("rgb(0,0,0)");
+        }
+      } else if (attractorCase == 2) {
+        y0s = [0, nh-1];
+        for (let i=0; i<nw; i++) {
+          for (let j=0; j<2; j++) {
+            let y0 = y0s[j]
+            walker = [i, y0];
+            xs.push(i);
+            ys.push(y0);
+            leaves.add(convert1D(i, y0));
+            add_leaf(walker, tree, leaves, version);
+            colors.push("rgb(0,0,0)");
 
-      walker = add_walker(radius, version);
+            walker = [y0, i];
+            xs.push(y0);
+            ys.push(i);
+            leaves.add(convert1D(y0, i));
+            add_leaf(walker, tree, leaves, version);
+            colors.push("rgb(0,0,0)");
+          }
+        }
+      }
+
+      walker = add_walker(radius, attractorCase);
       animate(canvas, context);
     }
     
-
-
+    function toggleShowWalkers(state) {
+      showWalkers = state;
+      if (showWalkers) {
+        document.getElementById("walkerSpeedSlider").disabled = false;
+        document.getElementById("treeBuildingSpeedSlider").disabled = true;
+      } else {
+        document.getElementById("walkerSpeedSlider").disabled = true;
+        document.getElementById("treeBuildingSpeedSlider").disabled = false;
+      }
+    }
 
   </script>
 
@@ -344,10 +498,46 @@
 Simulation of diffusion-limited aggregation
 
 <p>
-
-<input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),false);"/> with a cell side length of <input id="cellLength" type="text" value="2" size="3" maxlength="3"/> pixels (note that the canvas size is 400 by 400 pixels).
+Attractor type: <select name="displayDropdown" id="displayDropdown" value="0" onChange="reset(res, parseInt(document.getElementById('displayDropdown').value));">
+  <option value="0">Point</option>
+  <option value="1">Line</option>
+  <option value="2">Square</option>
+  <option value="3">Voronoi diagram (not implemented yet)</option>
+  </select>
+<br>
+<input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),attractorCase);"/> with a cell side length of <input id="cellLength" type="text" value="2" size="3" maxlength="3"/> pixels (note that the canvas size is 600 by 600 pixels).
+<!-- <input id="showWalkersCheckbox" type="checkbox" value="showWalkers"
+  onclick="setShowWalkers(document.getElementById('showWalkersCheckbox').checked)"/>Show walkers. -->
+<br>
+<input id="showWalkersCheckbox" type="checkbox" value="showWalkers" onclick="toggleShowWalkers(document.getElementById('showWalkersCheckbox').checked)"/>Show walkers.
+<br>
+<input id="versionCheckbox" type="checkbox" value="version" onclick="version = document.getElementById('versionCheckbox').checked"/>Require perpendicular contact (no diagonals).
+<br>
+<input id="mouseSourceCheckbox" type="checkbox" onclick="mouseSource = document.getElementById('mouseSourceCheckbox').checked"/>Override walker source with mouse position.
+<div class="slidecontainer">
+  <input type="range" min="1" max="40" value="10" class="slider" id="treeBuildingSpeedSlider" oninput="leavesPerFrame = this.value">Speed at which pixels are added to aggregate (simulation may lag at high speeds)
+</div>
+<div class="slidecontainer">
+  <input type="range" min="1" max="10000" value="500" class="slider" id="walkerSpeedSlider"  disabled="true" oninput="stepsPerFrame = this.value">Walker speed
+</div>
+<div class="slidecontainer">
+  <input type="range" min="0" max="100" value="100" class="slider" id="stickinessSlider" oninput="stickiness = this.value/100">Stickiness: <span id="sliderValueDisplay"></span>
+</div>
+  <script>
+    var slider = document.getElementById("stickinessSlider");
+    var output = document.getElementById("sliderValueDisplay");
+    output.innerHTML = slider.value/100;
+    slider.oninput = function() {
+      output.innerHTML = this.value/100;
+      stickiness = this.value/100; 
+    }
+  </script>
 <p>
 Press 'p' to pause/unpause.
+
+Stickiness is the probability that a pixel is added to the tree when it neighbors an existing pixel. By reducing it below 1, we get "hairier" aggregates.
+<p>
+Inspiration for this feature (as well as some of the attractors) came from this excellent website showcasing diffusion-limited aggregation: <a href="http://paulbourke.net/fractals/dla/">"http://paulbourke.net/fractals/dla/"</a>
 
 
 </div>
