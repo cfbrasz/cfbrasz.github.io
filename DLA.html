@@ -24,6 +24,7 @@
 </style>
 
 <body>
+  <script type="text/javascript" src="rhill-voronoi-core.min.js"></script>
   <!-- <canvas id="myCanvas" width="320" height="320"></canvas> -->
   <canvas id="myCanvas" ></canvas>
   <script>
@@ -61,6 +62,17 @@
           context.stroke();
         } else if (attractorCase == 2) {
           context.fillRect(nw/2*res, nh/2*res, res, res);
+        } else if (attractorCase == 3) {
+          // Draw Voronoi diagram edges
+          for (var i=0; i<nEdges; i++) {
+            var edge = diagram.edges[i];
+            if (edge.rSite != null) {
+              context.beginPath();
+              context.moveTo(edge.va.x,edge.va.y);
+              context.lineTo(edge.vb.x,edge.vb.y);
+              context.stroke();
+            }
+          }
         }
       }
     }
@@ -162,6 +174,8 @@
       } else if (attractorCase == 2) {
         // Leaf to be converted is in the center
         return walker[1] == nh/2 && walker[0] == nw/2;
+      } else if (attractorCase == 3) {
+        return false;
       }
     }
 
@@ -278,6 +292,62 @@
         } else if (attractorCase == 2) {
           x = nw/2;
           y = nh/2;
+        } else if (attractorCase == 3) {
+          // Use random number to specify somewhere along Voronoi edges
+          foundInteriorEdge=0;
+          // Keep trying until the random number lands you on an interior edge
+          count=0; 
+          while (!foundInteriorEdge) {
+            var s = totalEdgeLength*Math.random();
+            var index = cumulativeEdgeLengths.findIndex(function(n) {
+              return n > s;
+            });
+            //console.log("Index " + index + ": s=" + s + ", cumulativeEdgeLength[index]=" + cumulativeEdgeLengths[index]);
+            // Finds first index greater than s, ie edge[index] will be the one to seed a walker
+            var edge = diagram.edges[index];
+            count += 1; 
+            if (edge.rSite != null) {
+              foundInteriorEdge=1
+
+              var previousCumulativeEdgeLength=0;
+              if (index > 0)
+                previousCumulativeEdgeLength = cumulativeEdgeLengths[index-1]; 
+              var s_remainder = s - previousCumulativeEdgeLength;
+              var targetEdgeLength = cumulativeEdgeLengths[index] - previousCumulativeEdgeLength;
+              var interp_fraction = s_remainder / targetEdgeLength;
+               
+              x = edge.va.x + interp_fraction*(edge.vb.x - edge.va.x);
+              y = edge.va.y + interp_fraction*(edge.vb.y - edge.va.y);
+              x = Math.round(x/res);
+              y = Math.round(y/res);
+              let test_walker = [x,y];
+              let contactFound = 0;
+
+              // Old way:
+              //if (excludeTreeContact && excludeLeafContact && (check_tree_contact(test_walker, leaves) || check_tree_contact(test_walker, tree)))
+              //if (excludeTreeContact && check_tree_contact(test_walker, tree))
+
+              if (document.getElementById("radioAdjacent").checked && (check_tree_contact(test_walker, leaves) || check_tree_contact(test_walker, tree)))
+                contactFound = 1; 
+              if (document.getElementById("radioTree").checked && check_tree_contact(test_walker, tree))
+                contactFound = 1; 
+
+              if (contactFound)
+              {
+                //console.log("Contacting tree, try again");
+                foundInteriorEdge=0;
+                if (count > maxNumberOfTries) {
+                  // Give up: no more space to seed walkers
+                console.log("Giving up after " + count + " tries.");
+                  stop = true;
+                  break;
+                }
+              } else {
+                if (count > 50)
+                  console.log("Successful location for new walker after " + count + " tries.");
+              }
+            }
+          }
         }
       }
       walkerColor = interpolateLinearly( (walkerNumber/maxTreeSize) % 1, CMRmap)
@@ -329,6 +399,20 @@
     var tree = new Set();
     var w = 600;
     var h = 600;
+
+    // Variables for Voronoi attractor/source
+    var bbox = {xl:0,xr:w,yt:0,yb:h};
+    var nSites = 10;
+    var nEdges;
+    var voronoi;
+    var diagram;
+	  var sites = [];
+    var totalEdgeLength = 0;
+    var cumulativeEdgeLengths = [];
+    var excludeTreeContact = 1;
+    var excludeLeafContact = 0;
+    var maxNumberOfTries = 100000;
+
     var res = 2;
     var nw = w/res;
     var nh = h/res;
@@ -427,6 +511,12 @@
 
       stop = false; // stop when tree reaches radius
 
+      document.getElementById("radioNo").disabled = true;
+      document.getElementById("radioTree").disabled = true;
+      document.getElementById("radioAdjacent").disabled = true;
+
+      nSites = parseInt(document.getElementById('VoronoiSites').value,10)
+
       attractorCase = attractor;
       leaves = new Set();
       tree = new Set();
@@ -435,6 +525,7 @@
       colors = [];
       walkerNumber=0;
       if (attractorCase == 0) {
+        // Point
         walker = [x0, y0];
         walkerColor="rgb(0,0,0)";
         radSq = radius*radius;
@@ -444,6 +535,7 @@
         add_leaf(walker, tree, leaves, version);
         colors.push("rgb(0,0,0)");
       } else if (attractorCase == 1) {
+        // Line
         y0 = nh-1;
         for (let i=0; i<nw; i++) {
           walker = [i, y0];
@@ -454,6 +546,7 @@
           colors.push("rgb(0,0,0)");
         }
       } else if (attractorCase == 2) {
+        // Square
         y0s = [0, nh-1];
         for (let i=0; i<nw; i++) {
           for (let j=0; j<2; j++) {
@@ -473,10 +566,44 @@
             colors.push("rgb(0,0,0)");
           }
         }
+      } else if (attractorCase == 3) {
+        document.getElementById("radioNo").disabled = false;
+        document.getElementById("radioTree").disabled = false;
+        document.getElementById("radioAdjacent").disabled = false;
+         
+        // Voronoi diagram
+        voronoi = new Voronoi();
+        sites = [];
+        for (var i=0; i<nSites; i++) {
+          xrand = Math.round(Math.random()*nw);
+          yrand = Math.round(Math.random()*nh);
+          sites.push({x:xrand*res,y:yrand*res});
+          walker = [xrand, yrand];
+          add_leaf(walker, tree, leaves, version);
+          colors.push("rgb(0,0,0)");
+        }
+        diagram = voronoi.compute(sites,bbox);
+        nEdges = diagram.edges.length;
+        calculateCumulativeEdgeLengths();
       }
 
       walker = add_walker(radius, attractorCase);
       animate(canvas, context);
+    }
+
+    function calculateCumulativeEdgeLengths() {
+      // Create array with cumulative edge lengths
+      // Random number is scaled to total edge length in diagram. Linearly interpolate between endpoints of the edge specified by random number
+      totalEdgeLength = 0;
+      cumulativeEdgeLengths = []; 
+      for (var i=0; i<nEdges; i++) {
+        var edge = diagram.edges[i];
+        var dx = edge.vb.x - edge.va.x
+        var dy = edge.vb.y - edge.va.y
+        edgeLength = Math.sqrt(dx*dx + dy*dy);
+        totalEdgeLength += edgeLength;
+        cumulativeEdgeLengths.push(totalEdgeLength);
+      }
     }
     
     function toggleShowWalkers(state) {
@@ -502,8 +629,9 @@ Attractor type: <select name="displayDropdown" id="displayDropdown" value="0" on
   <option value="0">Point</option>
   <option value="1">Line</option>
   <option value="2">Square</option>
-  <option value="3">Voronoi diagram (not implemented yet)</option>
+  <option value="3">Voronoi diagram</option>
   </select>
+(Number of sites for Voronoi diagram attractor: <input id="VoronoiSites" type="text" value="10" size="3" maxlength="3"/>)
 <br>
 <input type="button" value="Reset" onclick="reset(parseInt(document.getElementById('cellLength').value,10),attractorCase);"/> with a cell side length of <input id="cellLength" type="text" value="2" size="3" maxlength="3"/> pixels (note that the canvas size is 600 by 600 pixels).
 <!-- <input id="showWalkersCheckbox" type="checkbox" value="showWalkers"
@@ -532,6 +660,10 @@ Attractor type: <select name="displayDropdown" id="displayDropdown" value="0" on
       stickiness = this.value/100; 
     }
   </script>
+  Constraints on walker source locations (for Voronoi attractor only):<br>
+  <input type="radio" name="excludeContactChoice" id="radioNo" value="no" disabled="true">No constraints<br>
+  <input type="radio" name="excludeContactChoice" id="radioTree" value="tree" checked=true disabled="true">Exclude walkers contacting tree<br>
+  <input type="radio" name="excludeContactChoice" id="radioAdjacent" value="adjacent" disabled="true">Exclude walkers contacting or adjacent to tree
 <p>
 Press 'p' to pause/unpause.
 
