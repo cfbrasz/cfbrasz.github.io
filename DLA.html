@@ -2,7 +2,8 @@
 <div class="content">
 
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1"> 
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1">
+    -->
     <!-- <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">  -->
     <style>
       html, body {
@@ -19,9 +20,10 @@
 
 <title>Diffusion-limited aggregation</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato">
-<style type="text/css">
-* {font-family: "Lato", sans-serif}
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Montserrat">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" type="text/css" href="ProgramStyle.css">
+<div id="divroot" style="width:610px;">
 
 <body>
   <script type="text/javascript" src="rhill-voronoi-core.min.js"></script>
@@ -622,7 +624,7 @@
 
 </body>
 <p>
-Simulation of diffusion-limited aggregation
+Simulation of <a href="https://en.wikipedia.org/wiki/Diffusion-limited_aggregation">diffusion-limited aggregation</a>, a simple model for cluster growth observed in many natural systems. Random walkers are released from the source locations (colored green) and added to the aggregate when they collide with it. The initial structure of the aggregate can be set by changing the attractor type. (The walker source also changes.)
 
 <p>
 Attractor type: <select name="displayDropdown" id="displayDropdown" value="0" onChange="reset(res, parseInt(document.getElementById('displayDropdown').value));">
@@ -666,11 +668,16 @@ Attractor type: <select name="displayDropdown" id="displayDropdown" value="0" on
   <input type="radio" name="excludeContactChoice" id="radioAdjacent" value="adjacent" disabled="true">Exclude walkers contacting or adjacent to tree
 <p>
 Press 'p' to pause/unpause.
-
-Stickiness is the probability that a pixel is added to the tree when it neighbors an existing pixel. By reducing it below 1, we get "hairier" aggregates.
 <p>
-Inspiration for this feature (as well as some of the attractors) came from this excellent website showcasing diffusion-limited aggregation: <a href="http://paulbourke.net/fractals/dla/">"http://paulbourke.net/fractals/dla/"</a>
-
-
+Stickiness is the probability that a pixel is added to the tree when it neighbors an existing pixel. By reducing it below 1, we get "hairier" aggregates. See this excellent website showcasing diffusion-limited aggregation with varying stickiness and attractors: <a href="http://paulbourke.net/fractals/dla/">"http://paulbourke.net/fractals/dla/"</a>
+<p>
+The color corresponds to when the walker was added to the aggregate -- the color maps will cycle if the number of cells in the aggregate gets large enough.
+<p>
+The algorithm is relatively straightforward: a set of locations adjacent to the existing aggregate is maintained, and each time a random walker takes a step, you check if the walker location is in the set of adjacent locations. If it is, that location is added to the aggregate and removed from the adjacent locations set, and new locations adjacent to the added cell are added to the set of adjacent locations. Otherwise, the walker keeps taking steps in random directions until it is added to the cluster or it gets too far away from the cluster, at which point a new walker is generated.
+<p>
+<a href="https://github.com/cfbrasz/diffusion-limited-aggregation">Link to Github repo</a>
+<p>
+<a href="programs.html">Back to programs</a>
 </div>
+
 </html>
