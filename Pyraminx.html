@@ -35,6 +35,7 @@
          
     var canvas = document.getElementById('myCanvas');
     var context = canvas.getContext('2d');
+    var heightDiff = 0;
     
     var linewidth = 2;
     
@@ -58,9 +59,8 @@
     document.addEventListener('keydown',keyDown);
     document.addEventListener('keyup',keyUp,);
     
-    //canvas.width = window.innerWidth;
     canvas.width = 850;
-    canvas.height = window.innerHeight - 50;
+    canvas.height = window.innerHeight - heightDiff;
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     var xCenter = canvas.width/2;
@@ -239,7 +239,7 @@
     
     function drawTetrahedron(canvas, context) {
       //canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight - 50;
+      canvas.height = window.innerHeight - heightDiff;
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.beginPath();
 

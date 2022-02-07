@@ -103,7 +103,7 @@
     
     function animate(planets, canvas, context, previousTime) {
       // update
-      var currentTime = (new Date()).getTime()
+      currentTime = (new Date()).getTime()
       var dtms = currentTime - previousTime;
       //var dt = dtms * tchar;
       var dt = dtms/1000.; // convert from ms to s so speeds is px/sec      
@@ -169,13 +169,16 @@
       }
 
       // request new frame
-      requestAnimFrame(function() {
-        animate(planets, canvas, context, currentTime);
-      });
+      if (!paused) {
+        requestAnimFrame(function() {
+          animate(planets, canvas, context, currentTime);
+        });
+      }
     }
           
     var canvas = document.getElementById('myCanvas');
     var context = canvas.getContext('2d');
+    var paused = false;
     
     var startX = 0;
     var startY = 0;
@@ -193,6 +196,7 @@
     var earthMassRatio = 3.0e-6;
     var sunMassRatio = 0.9986;
     var orbitRScale = 1.5;
+    var currentTime = (new Date()).getTime()
 
     // Zoom scale:
     var originalScale = 1000;
@@ -204,6 +208,7 @@
     canvas.addEventListener('mouseup',mouseReleased,false);
     canvas.addEventListener('touchstart',touchStart,false);
     canvas.addEventListener('touchend',touchEnd,false);
+    document.addEventListener('keypress',keyPressed);
     
     var planets = [];
     var nPlanets = 8;
@@ -281,6 +286,22 @@
     function mouseReleased (e) {
       makePlanet(e.x, e.y);
     }
+
+    function keyPressed (e) {
+      console.log(e.keyCode);
+
+      // Pause with space bar
+      if(e.keyCode == 32) {
+        paused = !paused;
+        
+        if(paused) console.log("Paused");
+        else {
+          console.log("Unpaused");
+          currentTime = (new Date()).getTime()
+          animate(planets, canvas, context, currentTime);
+        }
+      }
+    }
     
     function touchEnd (e) {
       makePlanet(e.changedTouches[0].pageX, e.changedTouches[0].pageY);
@@ -328,6 +349,8 @@
 
 <p>
 Fling stars and watch them interact.
+<p>
+    Pause/unpause with space bar.
 <!--
 Click and drag (or touch and drag) to fling stars around that attract each other gravitationally. When they collide they form a larger star.
 
